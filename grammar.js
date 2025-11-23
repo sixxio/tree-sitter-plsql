@@ -2,20 +2,16 @@
     |@|description grammar file for Oracle pl/sql
 -----------------------------------------------------------------------------------------------*/
 
-function reservedWord(word) {
-    return reserved(caseInsensitive(word.toLowerCase()))
-}
-
-function reserved(regex) {
-    return token(prec(1, new RegExp(regex)))
-}
-
-function caseInsensitive(word) {
-    return word.split('')
+function kw(word) {
+    return token(prec(1, new RegExp(word
+        .toLowerCase()
+        .split('')
         .map(letter => `[${letter}${letter.toUpperCase()}]`)
         .join('')
+    )))
 }
 
+// SYMBOLS
 const ASSIGNMENT = ':='
 const ASSOCIATION = '=>'
 const CONCAT = '||'
@@ -46,8 +42,9 @@ const BRACKET_RIGHT = ')'
 const QUOTE_SINGLE = "'"
 const QUOTE_DOUBLE = '"'
 const REMOTE = '@'
-const DIVISION = '/' // Исправленная константа
-const COLON = ':' // Добавленная константа
+const DIVISION = '/'
+const COLON = ':'
+const UNDERSCORE = '_'
 
 module.exports = grammar({
     name: 'plsql',
@@ -63,6 +60,53 @@ module.exports = grammar({
         [$._expression_base_elements, $._expression_base_boolean_elements],
         [$.window_function, $.aggregate_function_call],
         [$._subquery_element, $.scalar_subquery],
+        [$.type_definition_ref_cursor_return, $._referenced_datatypes],
+        [$._cursor_declaration_return_datatype, $._referenced_element_name],
+        [$.order_by_clause_element, $._referenced_element_name],
+        [$.order_by_clause_element, $._table_reference],
+        [$.order_by_clause_element, $._cross_outer_apply_clause],
+        [$._cross_outer_apply_clause, $._table_reference],
+        [$._expression_base_operator_not_boolean, $._expression_base_boolean],
+        [$.order_by_clause_element, $.identifier],
+        [$.correlation_variable, $.identifier],
+        [$.correlation_variable, $.referenced_element],
+        [$.kw_declare, $.identifier],  // Добавляем конфликт для DECLARE
+        [$.kw_for, $.identifier],  // Добавляем конфликт для FOR
+        [$.kw_each, $.identifier],  // Добавляем конфликт для EACH
+        [$.kw_row, $.identifier],  // Добавляем конфликт для ROW
+        [$.kw_new, $.identifier],  // Добавляем конфликт для NEW
+        [$.kw_old, $.identifier],  // Добавляем конфликт для OLD
+        [$.kw_as, $.identifier],
+        [$.create_trigger, $._trigger_when_condition, $._referenced_element_name],
+        [$._simple_dml_trigger, $._system_trigger],
+        // [$.identifier, $.kw_add],
+        // [$.identifier, $.kw_update],
+        // [$.identifier, $.kw_get],
+        // [$.identifier, $.kw_is],
+        // [$.identifier, $.kw_add],
+        // [$.identifier, $.kw_update],
+        // [$.identifier, $.kw_get],
+        // [$.identifier, $.kw_is],
+        // [$.identifier, $.kw_log],
+        // [$.identifier, $.kw_c],
+        // [$.identifier, $.kw_end],
+        // [$.identifier, $.kw_procedure],
+        // [$.identifier, $.kw_function],
+        // [$.identifier, $.kw_add],
+        // [$.identifier, $.kw_alter],
+        // [$.identifier, $.kw_body],
+        // [$.identifier, $.kw_create],
+        // [$.identifier, $.kw_drop],
+        // [$.identifier, $.kw_function],
+        // [$.identifier, $.kw_or],
+        // [$.identifier, $.kw_package],
+        // [$.identifier, $.kw_procedure],
+        // [$.identifier, $.kw_replace],
+        // [$.identifier, $.kw_sequence],
+        // [$.identifier, $.kw_table],
+        // [$.identifier, $.kw_view],
+        // [$.identifier, $.kw_with],
+
     ],
     extras: $ => [
         $.comment_sl,
@@ -80,6 +124,8 @@ module.exports = grammar({
             $._create_statement,
             $._drop_statement,
         ),
+
+        // DROP
         _drop_statement: $ => choice(
             $.drop_function,
             $.drop_procedure,
@@ -88,10 +134,25 @@ module.exports = grammar({
             $.drop_type_body,
             $.drop_trigger,
             $.drop_library,
+            $.drop_sequence,
+            $.drop_view,
+            $.drop_table
+        ),
+        drop_table: $ => seq(
+            $.kw_drop,
+            $.kw_table,
+            $.referenced_element,
+            SEMICOLON,
         ),
         drop_procedure: $ => seq(
             $.kw_drop,
             $.kw_procedure,
+            $.referenced_element,
+            SEMICOLON,
+        ),
+        drop_view: $ => seq(
+            $.kw_drop,
+            $.kw_view,
             $.referenced_element,
             SEMICOLON,
         ),
@@ -134,6 +195,14 @@ module.exports = grammar({
             $.referenced_element,
             SEMICOLON,
         ),
+        drop_sequence: $ => seq(
+            $.kw_drop,
+            $.kw_sequence,
+            $.referenced_element,
+            SEMICOLON,
+        ),
+
+        // CREATE
         _create_statement: $ => choice(
             $.create_package,
             $.create_package_body,
@@ -144,9 +213,9 @@ module.exports = grammar({
             $.create_type_body,
             $.create_table,
             $.create_view,
-
+            $.create_sequence,
         ),
-        create_trigger: $ => seq(
+        create_trigger: $ => prec(1, seq(
             $.create_obj,
             optional($._editionable_noneditionable),
             $.kw_trigger,
@@ -161,7 +230,7 @@ module.exports = grammar({
                 $._system_trigger,
             ),
             optional(DIVISION),
-        ),
+        )),
         create_library: $ => seq(
             $.create_obj,
             optional($._editionable_noneditionable),
@@ -225,7 +294,6 @@ module.exports = grammar({
                 BRACKET_RIGHT,
             )),
             $._is_as,
-            // Изменяем для правильной обработки WITH-предложения
             choice(
                 seq(
                     $.with_clause,
@@ -237,6 +305,27 @@ module.exports = grammar({
             SEMICOLON,
             optional(DIVISION),
         )),
+        create_procedure: $ => seq(
+            $.create_obj,
+            optional($._editionable_noneditionable),
+            $.kw_procedure,
+            optional($._schema),
+            field("prc_name", $.identifier),
+            optional($.parameter_declaration),
+            optional($.sharing_clause),
+            repeat($._procedure_properties),
+            $._is_as,
+            choice(
+                $.call_spec_ext,
+                // Тело процедуры содержит BEGIN...END; поэтому ничего больше не нужно
+                seq(optional(repeat($._declare_section_element)), $.body)
+            ),
+            // Оператор CREATE PROCEDURE должен заканчиваться точкой с запятой
+            SEMICOLON,
+            // Слэш - это команда SQL*Plus, оставим для совместимости
+            optional(DIVISION)
+        ),
+
         create_function: $ => seq(
             $.create_obj,
             optional($._editionable_noneditionable),
@@ -250,27 +339,12 @@ module.exports = grammar({
             $._is_as,
             choice(
                 $.call_spec_ext,
-                seq(repeat($._declare_section_element), $.body),
+                // Тело функции содержит BEGIN...END; поэтому ничего больше не нужно
+                seq(optional(repeat($._declare_section_element)), $.body)
             ),
-            $.end_obj_named,
-            optional(DIVISION),
-        ),
-        create_procedure: $ => seq(
-            $.create_obj,
-            optional($._editionable_noneditionable),
-            $.kw_procedure,
-            optional($._schema),
-            field("prc_name", $.identifier),
-            optional($.parameter_declaration),
-            optional($.sharing_clause),
-            repeat($._procedure_properties),
-            $._is_as,
-            choice(
-                $.call_spec_ext,
-                seq(repeat($._declare_section_element), $.body),
-            ),
-            $.end_obj_named,
-            optional(DIVISION),
+            // Оператор CREATE FUNCTION должен заканчиваться точкой с запятой
+            SEMICOLON,
+            optional(DIVISION)
         ),
         create_package: $ => seq(
             $.create_obj,
@@ -294,15 +368,47 @@ module.exports = grammar({
             field("package_name", $.identifier),
             optional($.sharing_clause),
             $._is_as,
-            repeat1($._declare_section_element),
+            // Список объявлений и определений
+            repeat(choice(
+                $._item_list_1,
+                $.procedure_definition, // Теперь это правило корректное
+                $.function_definition,  // И это тоже
+                $.cursor_definition
+            )),
+            // Опциональный блок инициализации пакета
+            optional(seq(
+                $.kw_begin,
+                repeat($.statement),
+                optional($.exception_block)
+            )),
+            // Финальный END, который относится ко всему пакету
             $.end_obj_named,
             optional(DIVISION),
+        ),
+        create_sequence: $ => seq(
+            $.kw_create,
+            $.kw_sequence,
+            $.referenced_element,
+            repeat(choice(
+                seq($.kw_start, $.kw_with, $._literal_number),
+                seq($.kw_increment, $.kw_by, $._literal_number),
+                seq($.kw_maxvalue, $._literal_number),
+                seq($.kw_minvalue, $._literal_number),
+                seq($.kw_cycle),
+                seq($.kw_nocycle),
+                seq($.kw_cache, $._literal_number),
+                seq($.kw_nocache),
+                seq($.kw_order),
+                seq($.kw_noorder)
+            )),
+            SEMICOLON,
         ),
         _package_property_element: $ => choice(
             $.default_collation_clause,
             $.invoker_rights_clause,
             $.accessible_by_clause,
         ),
+        // ALTER
         _alter_statement: $ => seq(
             choice(
                 $.alter_trigger,
@@ -311,6 +417,8 @@ module.exports = grammar({
                 $.alter_procedure,
                 $.alter_library,
                 $.alter_type,
+                $.alter_table, // <-- Добавьте эту строку
+                $.alter_sequence, // <-- И эту
             ),
         ),
         alter_package: $ => seq(
@@ -384,6 +492,36 @@ module.exports = grammar({
                 $._alter_type_alter_x,
             ),
             optional($.dependent_handling_clause),
+            SEMICOLON,
+        ),
+        alter_table: $ => seq(
+            $.kw_alter,
+            $.kw_table,
+            $.referenced_element,
+            $.kw_add,
+            BRACKET_LEFT,
+            $.table_element,
+            repeat(seq(COMMA, $.table_element)),
+            BRACKET_RIGHT,
+            SEMICOLON,
+        ),
+
+        alter_sequence: $ => seq(
+            $.kw_alter,
+            $.kw_sequence,
+            $.referenced_element,
+            choice(
+                seq($.kw_increment, $.kw_by, $._literal_number),
+                seq($.kw_start, $.kw_with, $._literal_number),
+                seq($.kw_maxvalue, $._literal_number),
+                seq($.kw_minvalue, $._literal_number),
+                seq($.kw_cycle),
+                seq($.kw_nocycle),
+                seq($.kw_cache, $._literal_number),
+                seq($.kw_nocache),
+                seq($.kw_order),
+                seq($.kw_noorder)
+            ),
             SEMICOLON,
         ),
         _alter_type_alter_x: $ => seq(
@@ -679,7 +817,7 @@ module.exports = grammar({
         ),
         name_name: $ => seq(
             $.kw_name,
-            $._quoted_identifier,
+            $.identifier,
         ),
         with_context: $ => seq(
             $.kw_with,
@@ -765,13 +903,13 @@ module.exports = grammar({
         ),
         _compound_dml_trigger: $ => seq(
             $.kw_for,
-            $.dml_event_clause,
+            $._dml_event_clause_full, // Используем правильное правило, которое уже содержит "ON table"
             optional($._referencing_clause),
-            optional($._trigger_edition_clause),
-            optional($._trigger_ordering_clause),
-            optional($._enable_disable),
-            optional(seq($.kw_when, $._condition_bracket)),
-            $._compound_trigger_body,
+            // Убираем лишние $.kw_for, $.kw_each, $.kw_row
+            $.kw_compound,
+            $.kw_trigger,
+            repeat($._declare_section_element),
+            $._timing_point_section,
         ),
         _system_trigger: $ => seq(
             $._before_after_instead_of,
@@ -832,23 +970,47 @@ module.exports = grammar({
             $.kw_on,
             optional($._nested_table),
             $.referenced_element,
-            optional($._referencing_clause),
-            optional($._for_each_row),
+            // И здесь также делаем порядок гибким
+            choice(
+                seq(optional($._referencing_clause), $.kw_for, $.kw_each, $.kw_row),
+                seq($.kw_for, $.kw_each, $.kw_row, optional($._referencing_clause))
+            ),
             optional($._trigger_edition_clause),
             optional($._trigger_ordering_clause),
             optional($._enable_disable),
             $._trigger_body,
         ),
+        _trigger_when_condition: $ => prec.right(2, seq(
+            BRACKET_LEFT,
+            $.expression,
+            BRACKET_RIGHT,
+        )),
         _simple_dml_trigger: $ => seq(
             choice($.kw_before, $.kw_after),
-            $.dml_event_clause,
-            optional($._referencing_clause),
-            optional($._for_each_row),
+            $._dml_event_clause_full,
+            // Эта часть теперь позволяет два порядка: FOR EACH ROW ... REFERENCING или REFERENCING ... FOR EACH ROW
+            choice(
+                seq(optional($._referencing_clause), $.kw_for, $.kw_each, $.kw_row),
+                seq($.kw_for, $.kw_each, $.kw_row, optional($._referencing_clause))
+            ),
             optional($._trigger_edition_clause),
             optional($._trigger_ordering_clause),
             optional($._enable_disable),
-            optional(seq($.kw_when, $._condition_bracket)),
+            optional(seq($.kw_when, $._trigger_when_condition)),
             $._trigger_body,
+        ),
+        _dml_event_clause_full: $ => seq(
+            $._dml_event_element,
+            repeat(seq($.kw_or, $._dml_event_element)),
+            $.kw_on,
+            $.referenced_element
+        ),
+
+        _dml_event_element: $ => choice(
+            seq($.kw_update, $.kw_of, field("column", $.identifier), repeat(seq(COMMA, field("column", $.identifier)))),
+            seq($.kw_insert),
+            seq($.kw_delete),
+            seq($.kw_update)
         ),
         _compound_trigger_body: $ => seq(
             $.kw_compound,
@@ -883,11 +1045,6 @@ module.exports = grammar({
             $.referenced_element,
             $.kw_of,
         ),
-        _for_each_row: $ => seq(
-            $.kw_for,
-            $.kw_each,
-            $.kw_row,
-        ),
         _trigger_ordering_clause: $ => seq(
             choice($.kw_follows, $.kw_precedes),
             $.referenced_element_repeat,
@@ -911,19 +1068,17 @@ module.exports = grammar({
             $._condition,
             BRACKET_RIGHT,
         ),
-        _condition: $ => seq(
-            $.expression,
-        ),
-        dml_event_clause: $ => choice(
-            // UPDATE OF column_list ON table
-            seq($.kw_update, $.kw_of, field("column", $.identifier), repeat(seq(COMMA, field("column", $.identifier))), $.kw_on, $.referenced_element),
-            // INSERT ON table
-            seq($.kw_insert, $.kw_on, $.referenced_element),
-            // DELETE ON table
-            seq($.kw_delete, $.kw_on, $.referenced_element),
-            // UPDATE ON table
-            seq($.kw_update, $.kw_on, $.referenced_element)
-        ),
+        _condition: $ => $.expression,
+        // dml_event_clause: $ => choice(
+        //     // UPDATE OF column_list ON table
+        //     seq($.kw_update, $.kw_of, field("column", $.identifier), repeat(seq(COMMA, field("column", $.identifier))),
+        //         // INSERT ON table
+        //         seq($.kw_insert),
+        //         // DELETE ON table
+        //         seq($.kw_delete),
+        //         // UPDATE ON table
+        //         seq($.kw_update)
+        //     )),
         default_collation_clause: $ => seq(
             $.kw_default,
             $.kw_collation,
@@ -1028,22 +1183,15 @@ module.exports = grammar({
             REMOTE,
             field("remote_name", $.identifier),
         ),
-referenced_element: $ => seq(
-    optional($._schema),
-    choice(
-        $._referenced_element_parent,
-        $._referenced_element_name,
-        $._referenced_element_multi,
-        $._referenced_element_package_variable,
-    ),
-    optional($._remote),
-),
-_referenced_element_package_variable: $ => prec(4,
-    seq(field("ref_name_parent", $.identifier),
-        POINT,
-        field("ref_name", $.identifier),
-    ),
-),
+        referenced_element: $ => seq(
+            optional($._schema),
+            choice(
+                $._referenced_element_parent,
+                $._referenced_element_name,
+                $._referenced_element_multi,
+            ),
+            optional($._remote),
+        ),
         _referenced_element_multi: $ => prec(3,
             seq(field("ref_name_parent", $.identifier),
                 POINT,
@@ -1090,20 +1238,18 @@ _referenced_element_package_variable: $ => prec(4,
             $.cursor_declaration,
             $.item_declaration,
             $.exception_declaration,
+            $.pragma_declaration, // <-- Добавьте эту строку
         ),
         _item_list_ext: $ => choice(
             $.function_definition,
             $.procedure_definition,
             $.cursor_definition,
         ),
-        create_obj: $ => seq(
+        create_obj: $ => choice(
+            // Вариант 1: CREATE OR REPLACE
+            seq($.kw_create, $.kw_or, $.kw_replace),
+            // Вариант 2: Только CREATE
             $.kw_create,
-            optional(
-                seq(
-                    $.kw_or,
-                    $.kw_replace,
-                ),
-            ),
         ),
         procedure_definition: $ => seq(
             $.kw_procedure,
@@ -1113,8 +1259,9 @@ _referenced_element_package_variable: $ => prec(4,
             $._is_as,
             choice(
                 $.call_spec_ext,
-                seq(repeat($._declare_section_element), $.body),
-            ),
+                // Добавляем optional(repeat($._declare_section_element))
+                seq(optional(repeat($._declare_section_element)), $.body)
+            )
         ),
         procedure_declaration: $ => seq(
             $.kw_procedure,
@@ -1137,8 +1284,9 @@ _referenced_element_package_variable: $ => prec(4,
             $._is_as,
             choice(
                 $.call_spec_ext,
-                seq(repeat($._declare_section_element), $.body),
-            ),
+                // И здесь тоже
+                seq(optional(repeat($._declare_section_element)), $.body)
+            )
         ),
         function_declaration: $ => seq(
             $.kw_function,
@@ -1159,21 +1307,46 @@ _referenced_element_package_variable: $ => prec(4,
             $.kw_exception,
             SEMICOLON,
         ),
-        item_declaration: $ => seq(
+        _exception_name: $ => choice(
+            $.kw_others,
+            $.kw_dup_val_on_index,
+            $.referenced_element,
+        ),
+        exception_handler: $ => seq(
+            $.kw_when,
+            $._exception_name,
+            $.kw_then,
+            repeat1($.statement),
+        ),
+        pragma_declaration: $ => seq(
+            $.kw_pragma,
+            choice(
+                seq($.kw_exception_init, BRACKET_LEFT, $.identifier, COMMA, $._literal_number, BRACKET_RIGHT),
+                seq($.kw_autonomous_transaction),
+                seq($.kw_inline, BRACKET_LEFT, $.identifier, COMMA, $.literal_string, BRACKET_RIGHT),
+                // Можно добавить другие виды PRAGMA по мере необходимости
+            ),
+            SEMICOLON,
+        ),
+        _item_declaration_identifier: $ => prec.right(10, choice(
+            seq($.identifier, repeat(seq(UNDERSCORE, $.identifier))),
             $.identifier,
+        )),
+        item_declaration: $ => seq(
+            $._item_declaration_identifier,
             optional($.kw_constant),
             $.datatype,
             optional($._not_null),
             optional($.default_expression),
             SEMICOLON,
         ),
-        plsql_block: $ => seq(
+        plsql_block: $ => prec(1, seq(
             optional(seq($.kw_declare, repeat1($._declare_section_element))),
             $.kw_begin,
             repeat1($.statement),
             optional($.exception_block),
-            $.end_obj_named, // ИСПРАВЛЕНО: было end_obj
-        ),
+            $.end_obj_named,
+        )),
         body: $ => seq(
             $.kw_begin,
             repeat1($.statement),
@@ -1215,6 +1388,7 @@ _referenced_element_package_variable: $ => prec(4,
             $.return_statement,
             $._sql_statements,
             $.while_loop_statement,
+            $.raise_application_error_statement, // <-- Добавьте эту строку
 
         ),
         assignment_statement: $ => seq(
@@ -1304,7 +1478,16 @@ _referenced_element_package_variable: $ => prec(4,
         ),
         raise_statement: $ => seq(
             $.kw_raise,
-            $.referenced_element,
+            optional($.referenced_element), // <-- Теперь часть необязательна
+        ),
+        raise_application_error_statement: $ => seq(
+            $.kw_raise_application_error,
+            BRACKET_LEFT,
+            $._literal_number,
+            COMMA,
+            $.expression,
+            optional(seq(COMMA, choice($.kw_true, $.kw_false))),
+            BRACKET_RIGHT,
         ),
         pipe_row_statement: $ => seq(
             $.kw_pipe,
@@ -1623,10 +1806,10 @@ _referenced_element_package_variable: $ => prec(4,
             $.kw_by,
             $.type_definition_assoc_array_datatypes,
         ),
-        type_definition_assoc_array_datatypes: $ => choice(
+        type_definition_assoc_array_datatypes: $ => prec(2, choice(
             $.kw_pls_integer,
             $.kw_binary_integer,
-            $.kw_long,
+            $.kw_long, // <-- Теперь этот LONG будет иметь приоритет в контексте INDEX BY
             $._referenced_datatypes,
             seq(
                 choice(
@@ -1636,7 +1819,7 @@ _referenced_element_package_variable: $ => prec(4,
                 ),
                 $._size_byte_char,
             ),
-        ),
+        )),
         type_definition_record: $ => seq(
             $.kw_type,
             field("type_rec_name", $.identifier),
@@ -1712,49 +1895,34 @@ _referenced_element_package_variable: $ => prec(4,
             $.kw_not,
             $.kw_null,
         ),
-expression: $ => choice(
-    // Бинарные операции с левой ассоциативностью
-    prec.left(10, seq(
-        field("left", $.expression),
-        field("operator", $._expression_operator_not_boolean),
-        field("right", $.expression)
-    )),
-    // Унарные операции с правой ассоциативностью
-    prec.right(11, seq(
-        field("operator", choice(PLUS, MINUS)),
-        field("operand", $.expression)
-    )),
-    prec(4, $._expression_element),
-    prec(1, seq(BRACKET_LEFT, $.expression, BRACKET_RIGHT)),
-    prec(6, $.window_function),
-),
-_expression_element: $ => choice(
-    prec(2, $._expression_base_boolean),
-    prec(4, $._expression_base_elements),
-    prec(3, $._expression_base_case),
-),
+        expression: $ => choice(
+            prec(4, $._expression_element),
+            prec(7, $.window_function),
+        ),
+        _expression_element: $ => choice(
+            // ИСПРАВЛЕНИЕ: изменен порядок правил для корректного парсинга бинарных операторов
+            prec(2, $._expression_base_boolean),
+            prec(5, $._expression_base_elements),  // Повышаем приоритет
+            prec(3, $._expression_base_operator_not_boolean),
+            prec(1, $._expression_base_case),
+            prec(6, seq(BRACKET_LEFT, $.expression, BRACKET_RIGHT)),  // Добавляем выражения в скобках с высоким приоритетом
+        ),
+        _expression_base_elements: $ => choice(
+            prec(8, $.ref_call),
+            prec(7, $.referenced_element_point_method_call),
+            prec(6, $._referenced_element_percent_method_call),
+            prec(5, $.referenced_element),
+            prec(4, $.aggregate_function_call),
+            prec(3, $.scalar_subquery),
+            prec(2, $._literal),
+            prec(1, $._literal_list_multi),
+            prec(-1, $.correlation_variable), // Снижаем приоритет с 0 на -1
+            prec(-2, $.placeholder),
+            prec(9, seq(BRACKET_LEFT, $.expression, BRACKET_RIGHT)),  // Добавляем выражения в скобках с высоким приоритетом
+            $._sql_percent_attributes, // <-- Добавьте эту строку
 
-_expression_arithmetic: $ => prec.left(10, seq(
-    $._expression_base_elements,
-    repeat1(seq(
-        $._expression_operator_not_boolean,
-        $._expression_base_elements
-    ))
-)),
-_expression_base_elements: $ => choice(
-    prec(8, $.ref_call),
-    prec(7, $.referenced_element_point_method_call),
-    prec(6, $._referenced_element_percent_method_call),
-    prec(5, $.referenced_element),
-    prec(4, $.aggregate_function_call),
-    prec(3, $.scalar_subquery),
-    prec(2, $._literal),
-    prec(1, $._literal_list_multi),
-    prec(-1, $.correlation_variable),
-    prec(-2, $.placeholder),
-),
-
-        _expression_base_operator_not_boolean: $ => seq(
+        ),
+        _expression_base_operator_not_boolean: $ => prec.left(seq(
             $._expression_base_elements,
             repeat1(
                 seq(
@@ -1762,7 +1930,7 @@ _expression_base_elements: $ => choice(
                     $._expression_base_elements,
                 ),
             ),
-        ),
+        )),
         _expression_base_case: $ => choice(
             $.expression_base_case_search,
             $.expression_base_case_simple,
@@ -1901,6 +2069,16 @@ _expression_base_elements: $ => choice(
                 $.kw_notfound,
             ),
         ),
+        _sql_percent_attributes: $ => seq(
+            $.kw_sql,
+            PERCENT,
+            choice(
+                $.kw_rowcount,
+                $.kw_found,
+                $.kw_notfound,
+                $.kw_isopen,
+            ),
+        ),
         referenced_element_point_method_call: $ => seq(
             $.referenced_element,
             POINT,
@@ -1936,231 +2114,159 @@ _expression_base_elements: $ => choice(
             $.kw_return,
             $.datatype,
         ),
+
+        // =================================================================
+        // ПРАВИЛА ДЛЯ ТИПОВ ДАННЫХ (ПЕРЕРАБОТАНО)
+        // =================================================================
+
+        // Это основное правило для типа данных, которое используется в объявлениях.
+        // Оно включает в себя все возможные категории типов.
         datatype: $ => choice(
+            $._referenced_element_percent_type, // <-- Добавьте это с высоким приоритетом
+            $._oracle_built_in_datatypes,
+            $._ansi_supported_datatypes,
+            $._user_defined_types,
+            $._oracle_supplied_types
+        ),
+        _referenced_element_percent_type: $ => prec.right(10, seq(
+            $.referenced_element,
+            $.kw_datatype_type
+        )),
+
+        // --- Oracle Built-in Datatypes ---
+        _oracle_built_in_datatypes: $ => choice(
             $._character_datatypes,
             $._number_datatypes,
             $._long_and_raw_datatypes,
             $._datetime_datatypes,
             $._large_object_datatypes,
             $._rowid_datatypes,
-            $._logical_datatypes,
-            $._referenced_datatypes,
-            $._supplied_datatypes_any_types,
-            $._supplied_datatypes_xml_types,
-            $._supplied_datatypes_spatial_types,
-            $._object_datatypes,
-            $._other_datatypes,
-            $.referenced_element,
-            // TODO user_defined_types
+            $.kw_boolean, // <-- Добавьте эту строку
+
         ),
-        _character_datatypes: $ => prec(1, choice(
-            $._character_datatypes_char,
-            $._character_datatypes_varchar2,
-            $._character_datatypes_nchar,
-            $._character_datatypes_nvarchar2,
-            $._ansi_supported_datatypes_character,
-            $._ansi_supported_datatypes_char_nchar,
-            $._ansi_supported_datatypes_varchar,
-            $._ansi_supported_datatypes_national,
-        )),
-        _character_datatypes_char: $ => seq(
-            $.kw_char,
-            optional($._size_byte_char),
+
+        _character_datatypes: $ => choice(
+            seq($.kw_char, optional($._size_byte_char)),
+            // Делаем размер необязательным для VARCHAR2
+            seq($.kw_varchar2, optional($._size), optional($.byte_char)),
+            seq($.kw_nchar, optional($._size)),
+            // И для NVARCHAR2 тоже
+            seq($.kw_nvarchar2, optional($._size))
         ),
-        _character_datatypes_varchar2: $ => seq(
-            $.kw_varchar2,
-            optional($._size_byte_char),
-        ),
-        _character_datatypes_nchar: $ => seq(
-            $.kw_nchar,
-            optional($._size),
-        ),
-        _character_datatypes_nvarchar2: $ => seq(
-            $.kw_nvarchar2,
-            optional($._size),
-        ),
-        _number_datatypes: $ => prec(1, choice(
-            $._number_datatypes_number,
-            $._number_datatypes_float,
-            $._number_datatypes_keyword,
-            $._ansi_supported_datatypes_numeric_decimal_dec,
-            $._ansi_supported_datatypes_double_precision,
-        )),
-        _number_datatypes_keyword: $ => choice(
-            $.kw_int,
-            $.kw_smallint,
-            $.kw_real,
+
+        _number_datatypes: $ => prec(2, choice(
+            seq($.kw_number, optional($._size_precision_scale)),
+            seq($.kw_float, optional($._size)),
             $.kw_binary_float,
-            $.kw_binary_double,
-            $.kw_simple_float,
-            $.kw_simple_double,
-            $.kw_binary_integer,
-            $.kw_pls_integer,
-            $.kw_natural,
-            $.kw_naturaln,
-            $.kw_positive,
-            $.kw_positiven,
-            $.kw_signtype,
-            $.kw_simple_integer,
-            $.kw_integer,
-        ),
-        _number_datatypes_number: $ => seq(
-            $.kw_number,
-            optional($._size_precision_scale),
-        ),
-        _number_datatypes_float: $ => seq(
-            $.kw_float,
-            optional($._size),
-        ),
+            $.kw_binary_double
+        )),
+
         _long_and_raw_datatypes: $ => choice(
-            $._long_and_raw_datatypes_long_raw,
-            $._long_and_raw_datatypes_raw,
-        ),
-        _long_and_raw_datatypes_long_raw: $ => seq(
             $.kw_long,
-            optional($.kw_raw),
+            seq($.kw_long, $.kw_raw),
+            seq($.kw_raw, $._size)
         ),
-        _long_and_raw_datatypes_raw: $ => seq(
-            $.kw_raw,
-            $._size,
-        ),
+
         _datetime_datatypes: $ => choice(
-            $._datetime_datatypes_keyword,
-            $._datetime_datatypes_date_timestamp,
-            $._datetime_datatypes_date_interval_year,
-            $._datetime_datatypes_date_interval_day,
-        ),
-        _datetime_datatypes_keyword: $ => choice(
             $.kw_date,
+            seq($.kw_timestamp, optional($._size), optional($._with_local_time_zone)),
+            seq($.kw_interval, $.kw_year, optional($._size), $.kw_to, $.kw_month),
+            seq($.kw_interval, $.kw_day, optional($._size), $.kw_to, $.kw_second, optional($._size))
         ),
-        _datetime_datatypes_date_timestamp: $ => seq(
-            $.kw_timestamp,
-            optional($._size),
-            optional(
-                seq(
-                    $.kw_with,
-                    optional(
-                        $.kw_local,
-                    ),
-                    $.kw_time,
-                    $.kw_zone,
-                ),
-            ),
-        ),
-        _datetime_datatypes_date_interval_year: $ => seq(
-            $.kw_interval,
-            $.kw_year,
-            optional($._size),
-            $.kw_to,
-            $.kw_month,
-        ),
-        _datetime_datatypes_date_interval_day: $ => seq(
-            $.kw_interval,
-            $.kw_day,
-            optional($._size),
-            $.kw_to,
-            $.kw_second,
-            optional($._size),
-        ),
+
         _large_object_datatypes: $ => choice(
             $.kw_blob,
             $.kw_clob,
             $.kw_nclob,
-            $.kw_bfile,
+            $.kw_bfile
         ),
+
         _rowid_datatypes: $ => choice(
             $.kw_rowid,
-            $._rowid_datatypes_urowid,
+            seq($.kw_urowid, optional($._size))
         ),
-        _referenced_datatypes: $ => choice(
-            $._referenced_datatypes_type,
-            $._referenced_datatypes_rowtype,
+
+        // --- ANSI Supported Datatypes ---
+        _ansi_supported_datatypes: $ => prec(1, choice(
+            seq($.kw_character, optional($.kw_varying), $._size),
+            seq(choice($.kw_char, $.kw_nchar), $.kw_varying, $._size),
+            seq($.kw_varchar, $._size),
+            seq($.kw_national, choice($.kw_character, $.kw_char), optional($.kw_varying), $._size),
+            seq(choice($.kw_numeric, $.kw_decimal), optional($._size_precision_scale)),
+            choice($.kw_integer, $.kw_int, $.kw_smallint),
+            seq($.kw_float, optional($._size)), // Этот FLOAT теперь имеет более низкий приоритет
+            seq($.kw_double, $.kw_precision),
+            $.kw_real
+        )),
+
+        // --- User-Defined Types ---
+        // Пользовательские типы (OBJECT, VARRAY, Nested Table, REF)
+        // Это типы, которые вы создаете с помощью CREATE TYPE.
+        _user_defined_types: $ => choice(
+            // В PL/SQL пользовательский тип обычно ссылается по имени.
+            // Правило $.referenced_element уже покрывает обращение к таким типам.
+            // Пример: my_schema.my_object_type
+            $.referenced_element
         ),
-        _referenced_datatypes_type: $ => seq(
-            $.referenced_element,
-            $.kw_datatype_type,
+
+        // --- Oracle Supplied Types ---
+        _oracle_supplied_types: $ => choice(
+            $._any_types,
+            $._xml_types,
+            $._spatial_types,
+            seq($.kw_sys, UNDERSCORE, $.kw_refcursor), // <-- Правильная версия
         ),
-        _referenced_datatypes_rowtype: $ => seq(
-            $.referenced_element,
-            $.kw_datatype_rowtype,
+
+        _any_types: $ => choice(
+            seq($.kw_sys, POINT, $.kw_anydata),
+            seq($.kw_sys, POINT, $.kw_anytype),
+            seq($.kw_sys, POINT, $.kw_anydataset)
         ),
-        _logical_datatypes: $ => choice(
-            $.kw_boolean,
-        ),
-        _rowid_datatypes_urowid: $ => seq(
-            $.kw_urowid,
-            optional($._size),
-        ),
-        _ansi_supported_datatypes_character: $ => seq(
-            $.kw_character,
-            optional($.kw_varying),
-            $._size,
-        ),
-        _ansi_supported_datatypes_char_nchar: $ => seq(
-            choice(
-                $.kw_char,
-                $.kw_nchar,
-            ),
-            $.kw_varying,
-            $._size,
-        ),
-        _ansi_supported_datatypes_varchar: $ => seq(
-            $.kw_varchar,
-            $._size,
-        ),
-        _ansi_supported_datatypes_national: $ => seq(
-            $.kw_varchar,
-            choice(
-                $.kw_char,
-                $.kw_character,
-            ),
-            optional($.kw_varying),
-            $._size,
-        ),
-        _ansi_supported_datatypes_numeric_decimal_dec: $ => seq(
-            choice(
-                $.kw_numeric,
-                $.kw_decimal,
-                $.kw_dec,
-            ),
-            optional($._size_precision_scale),
-        ),
-        _ansi_supported_datatypes_float: $ => seq(
-            $.kw_float,
-            optional($._size),
-        ),
-        _ansi_supported_datatypes_double_precision: $ => seq(
-            $.kw_double,
-            $.kw_precision,
-        ),
-        _supplied_datatypes_any_types: $ => seq(
-            $.kw_sys,
-            POINT,
-            choice(
-                $.kw_anydata,
-                $.kw_anytype,
-                $.kw_anydataset,
-            ),
-        ),
-        _supplied_datatypes_xml_types: $ => choice(
+
+        _xml_types: $ => choice(
             $.kw_xmltype,
-            $.kw_uritype,
+            $.kw_uritype
         ),
-        _supplied_datatypes_spatial_types: $ => choice(
+
+        _spatial_types: $ => choice(
             $.kw_sdo_geometry,
             $.kw_sdo_topo_geometry,
-            $.kw_sdo_georaster,
+            $.kw_sdo_georaster
         ),
-        _object_datatypes: $ => choice(
-            $.kw_json_element_t,
-            $.kw_json_array_t,
-            $.kw_json_object_t,
-            $.kw_json_scalar_t,
-            $.kw_json_key_list,
+
+        // --- Вспомогательные правила для типов данных ---
+        // Эти правила используются для определения размеров, точности и т.д.
+
+        // Низкий приоритет для общего правила размера
+        _size: $ => prec(1, seq(BRACKET_LEFT, $._literal_number, BRACKET_RIGHT)),
+
+        // Высокий приоритет для правила размера с BYTE/CHAR
+        _size_byte_char: $ => prec(2, seq(BRACKET_LEFT, $._literal_number, optional($.byte_char), BRACKET_RIGHT)),
+        _size_precision_scale: $ => seq(BRACKET_LEFT, $._literal_number, optional(seq(COMMA, $._literal_number)), BRACKET_RIGHT),
+
+        _with_local_time_zone: $ => seq(
+            $.kw_with,
+            optional($.kw_local),
+            $.kw_time,
+            $.kw_zone
         ),
-        _other_datatypes: $ => choice(
-            $.exception_declaration,
+
+        byte_char: $ => choice($.kw_byte, $.kw_char),
+
+        // --- ИСПРАВЛЕННОЕ ПРАВИЛО ---
+        // Это правило теперь ссылается на новые, хорошо структурированные правила типов данных.
+        // Оно используется для %TYPE и %ROWTYPE.
+        _referenced_datatypes: $ => choice(
+            // Позволяет использовать любой встроенный или ANSI тип
+            $._oracle_built_in_datatypes,
+            $._ansi_supported_datatypes,
+            // Позволяет использовать любой другой тип, включая пользовательские и поставляемые Oracle
+            $.referenced_element
         ),
+
+        // --- КОНЕЦ БЛОКА ТИПОВ ДАННЫХ ---
+
+
         ref_call: $ => seq(
             prec(5, $.referenced_element),
             $.parameter,
@@ -2230,17 +2336,17 @@ _expression_base_elements: $ => choice(
             $._literal_number,
             BRACKET_RIGHT,
         )),
-        _size: $ => seq(
-            BRACKET_LEFT,
-            $._literal_number,
-            BRACKET_RIGHT,
-        ),
-        _size_byte_char: $ => seq(
-            BRACKET_LEFT,
-            $._literal_number,
-            optional($.byte_char),
-            BRACKET_RIGHT,
-        ),
+        // _size: $ => seq(
+        //     BRACKET_LEFT,
+        //     $._literal_number,
+        //     BRACKET_RIGHT,
+        // ),
+        // _size_byte_char: $ => seq(
+        //     BRACKET_LEFT,
+        //     $._literal_number,
+        //     optional($.byte_char),
+        //     BRACKET_RIGHT,
+        // ),
         _size_precision_scale: $ => seq(
             BRACKET_LEFT,
             $._precision,
@@ -2295,6 +2401,7 @@ _expression_base_elements: $ => choice(
             seq(
                 COLON,
                 choice($.kw_new, $.kw_old),
+                optional(seq(UNDERSCORE, $.identifier)),
                 optional(seq(POINT, field("field_name", $.identifier)))
             )
         ),
@@ -2304,15 +2411,24 @@ _expression_base_elements: $ => choice(
         ),
         host_variable: $ => seq(
             DOUBLE_POINT,
-            $._unquoted_identifier,
+            $.identifier,
         ),
-        identifier: $ => choice(
-            $._unquoted_identifier,
-            $._quoted_identifier
-        ),
-        _unquoted_identifier: $ => /[a-zA-Z][a-zA-Z0-9_$#]*/,
-        _quoted_identifier: $ => choice(
-            seq('"', field("name", /(""|[^"])*/), '"'), // ANSI QUOTES
+        identifier: $ => prec.right(token(choice(
+            // Это регулярное выражение соответствует любому идентификатору, включая те,
+            // что содержат подчеркивания и могут начинаться с ключевого слова.
+            // Например: test_table, create_view, drop_table.
+            // token() заставляет лексер сопоставить всю последовательность за раз.
+            /[A-z][A-z0-9_$#]*/,
+            // Правило для идентификаторов в двойных кавычках.
+            /"(""|[^"])*"/,
+        ))),
+
+        _identifier_with_underscore: $ => token(
+            seq(
+                field("first_part", /[a-zA-Z][a-zA-Z0-9_$#]*/),
+                UNDERSCORE,
+                field("second_part", /[a-zA-Z][a-zA-Z0-9_$#]*/)
+            )
         ),
         _referenced_element_list: $ => seq(
             BRACKET_LEFT,
@@ -2611,15 +2727,15 @@ _expression_base_elements: $ => choice(
                 ),
             ),
         ),
-        _cross_outer_apply_clause: $ => seq(
+        _cross_outer_apply_clause: $ => prec(2, seq(
             choice($.kw_cross, $.kw_outer),
             $.kw_apply,
             $.kw_join,
             choice(
                 $._table_reference,
-                // $._collection_expression,
+                $._table_collection_expression,
             ),
-        ),
+        )),
         _outer_join_clause: $ => seq(
             optional($._query_partiion_clause),
             optional($.kw_natural),
@@ -2642,18 +2758,35 @@ _expression_base_elements: $ => choice(
             $.kw_by,
             seq($.expression, repeat(seq(COMMA, $.expression))),
         ),
-        _table_reference: $ => seq(
+        _table_reference: $ => prec(1, seq(
             choice(
                 $._query_table_expression,
                 $._container_clause,
                 $._shards_clause,
+                $._table_collection_expression,
             ),
             optional(field("alias", $.identifier)),
+        )),
+
+        // Добавить новое правило
+        _table_collection_expression: $ => seq(
+            $.kw_table,
+            BRACKET_LEFT,
+            $.referenced_element,
+            BRACKET_RIGHT,
         ),
         _query_table_expression: $ => choice(
             $._query_table_expression_ref_element,
             $._query_table_expression_lateral,
-            // $._table_collection_expression,
+        ),
+        _cross_outer_apply_clause: $ => seq(
+            choice($.kw_cross, $.kw_outer),
+            $.kw_apply,
+            $.kw_join,
+            choice(
+                $._table_reference,
+                $._table_collection_expression,
+            ),
         ),
         _query_table_expression_ref_element: $ => seq(
             $.referenced_element,
@@ -2969,12 +3102,16 @@ _expression_base_elements: $ => choice(
             $.order_by_clause_element,
             repeat(seq(COMMA, $.order_by_clause_element)),
         ),
-        order_by_clause_element: $ => seq(
-            $.expression,
+        order_by_clause_element: $ => prec(3, seq(
+            choice(
+                $.expression,
+                $.identifier,  // Разрешаем использовать псевдонимы напрямую
+            ),
             optional(
                 choice($.kw_asc, $.kw_desc),
             ),
             optional(seq($.kw_nulls, choice($.kw_first, $.kw_last)))),
+        ),
         row_limiting_clause: $ => choice(
             seq($.row_limiting_clause_offset, $.row_limiting_clause_fetch),
             seq($.row_limiting_clause_offset),
@@ -3048,7 +3185,7 @@ _expression_base_elements: $ => choice(
         // --- НАЧАЛО НОВЫХ ПРАВИЛ ДЛЯ CREATE TABLE ---
 
         create_table: $ => seq(
-            $.kw_create,
+            $.create_obj,
             $.kw_table,
             optional($._schema),
             field("table_name", $.identifier),
@@ -3068,39 +3205,13 @@ _expression_base_elements: $ => choice(
             $.table_constraint,
         ),
 
-        generated_clause: $ => seq(
-    $.kw_generated,
-    choice(
-        $.kw_always,
-        seq($.kw_by, $.kw_default),
-    ),
-    $.kw_as,
-    $.kw_identity,
-    optional(seq(BRACKET_LEFT, repeat($.identity_option), BRACKET_RIGHT)),
-),
-
-identity_option: $ => choice(
-    seq($.kw_start, $.kw_with, choice($.number, $.literal_string)),
-    seq($.kw_increment, $.kw_by, choice($.number, $.literal_string)),
-    seq($.kw_maxvalue, choice($.number, $.literal_string)),
-    seq($.kw_nomaxvalue),
-    seq($.kw_minvalue, choice($.number, $.literal_string)),
-    seq($.kw_nominvalue),
-    seq($.kw_cycle),
-    seq($.kw_nocycle),
-    seq($.kw_cache, choice($.number, $.literal_string)),
-    seq($.kw_nocache),
-    seq($.kw_order),
-    seq($.kw_noorder),
-),
-table_column_definition: $ => seq(
-    field("column_name", $.identifier),
-    // Используем новое, специализированное правило для типов в CREATE TABLE
-    $.create_table_datatype,
-    optional($.generated_clause),  // Добавляем эту строку
-    optional($.column_default),
-    optional($.column_constraint),
-),
+        table_column_definition: $ => seq(
+            field("column_name", $.identifier),
+            // Используем новое, специализированное правило для типов в CREATE TABLE
+            $.datatype,
+            optional($.column_default),
+            optional($.column_constraint),
+        ),
 
         column_default: $ => seq(
             $.kw_default,
@@ -3205,437 +3316,424 @@ table_column_definition: $ => seq(
                 seq($.kw_check, $.kw_option),
             ),
         ),
-        create_table_datatype: $ => choice(
-            seq($.kw_number, optional($._size_precision_scale)),
-            seq($.kw_float, optional($._size)),
-            seq($.kw_varchar2, optional($._size_byte_char)),
-            seq($.kw_varchar, optional($._size)),
-            seq($.kw_char, optional($._size_byte_char)),
-            seq($.kw_nvarchar2, optional($._size)),
-            seq($.kw_nchar, optional($._size)),
-            seq($.kw_timestamp, optional(seq(BRACKET_LEFT, $._literal_number, BRACKET_RIGHT))),
-            seq($.kw_date),
-            seq($.kw_clob),
-            seq($.kw_blob),
-            // Можно добавить и другие типы по мере необходимости
-        ),
 
-        // --- КОНЕЦ НОВЫХ ПРАВИЛ ДЛЯ CREATE TABLE ---
-        // KW
-        kw_sum: _ => reservedWord("sum"),
-        kw_avg: _ => reservedWord("avg"),
 
-        kw_min: _ => reservedWord("min"),
-        kw_max: _ => reservedWord("max"),
-kw_generated: _ => reservedWord("generated"),
-kw_identity: _ => reservedWord("identity"),
-kw_always: _ => reservedWord("always"),
-kw_increment: _ => reservedWord("increment"),
-kw_maxvalue: _ => reservedWord("maxvalue"),
-kw_nomaxvalue: _ => reservedWord("nomaxvalue"),
-kw_minvalue: _ => reservedWord("minvalue"),
-kw_nominvalue: _ => reservedWord("nominvalue"),
-kw_nocache: _ => reservedWord("nocache"),
-kw_noorder: _ => reservedWord("noorder"),
-kw_cache: _ => reservedWord("kw_cache"),
-        kw_table: _ => reservedWord("table"),
-        kw_tablespace: _ => reservedWord("tablespace"),
-        kw_logging: _ => reservedWord("logging"),
-        kw_nologging: _ => reservedWord("nologging"),
-        kw_primary: _ => reservedWord("primary"),
-        kw_foreign: _ => reservedWord("foreign"),
-        kw_key: _ => reservedWord("key"),
-        kw_references: _ => reservedWord("references"),
-        kw_unique: _ => reservedWord("unique"),
-        kw_check: _ => reservedWord("check"),
-        kw_constraint: _ => reservedWord("constraint"),
-        kw_view: _ => reservedWord("view"),
-        kw_read: _ => reservedWord("read"),
-        kw_check: _ => reservedWord("check"),
-        kw_option: _ => reservedWord("option"),
-        kw_over: _ => reservedWord("over"),
-        kw_partition: _ => reservedWord("partition"),
-        kw_rows: _ => reservedWord("rows"),
-        kw_range: _ => reservedWord("range"),
-        kw_unbounded: _ => reservedWord("unbounded"),
-        kw_preceding: _ => reservedWord("preceding"),
-        kw_following: _ => reservedWord("following"),
-        kw_current: _ => reservedWord("current"),
-        kw_row_number: _ => reservedWord("row_number"),
-        kw_rank: _ => reservedWord("rank"),
-        kw_dense_rank: _ => reservedWord("dense_rank"),
-        kw_relies_on: _ => reservedWord("relies_on"),
-        kw_cluster: _ => reservedWord("cluster"),
-        kw_hash: _ => reservedWord("hash"),
-        kw_range: _ => reservedWord("range"),
-        kw_any: _ => reservedWord("any"),
-        kw_credential: _ => reservedWord("credential"),
-        kw_under: _ => reservedWord("under"),
-        kw_persistable: _ => reservedWord("persistable"),
-        kw_oid: _ => reservedWord("oid"),
-        kw_database: _ => reservedWord("database"),
-        kw_pluggable: _ => reservedWord("pluggable"),
-        kw_schema: _ => reservedWord("schema"),
-        kw_container: _ => reservedWord("container"),
-        kw_unplug: _ => reservedWord("unplug"),
-        kw_clone: _ => reservedWord("clone"),
-        kw_suspend: _ => reservedWord("suspend"),
-        kw_logon: _ => reservedWord("logon"),
-        kw_logoff: _ => reservedWord("logoff"),
-        kw_servererror: _ => reservedWord("servererror"),
-        kw_db_role_change: _ => reservedWord("db_role_change"),
-        kw_shutdown: _ => reservedWord("shutdown"),
-        kw_startup: _ => reservedWord("startup"),
-        kw_ddl: _ => reservedWord("ddl"),
-        kw_truncate: _ => reservedWord("truncate"),
-        kw_revoke: _ => reservedWord("revoke"),
-        kw_grant: _ => reservedWord("grant"),
-        kw_disassociate: _ => reservedWord("disassociate"),
-        kw_noaudit: _ => reservedWord("noaudit"),
-        kw_audit: _ => reservedWord("audit"),
-        kw_statistics: _ => reservedWord("statistics"),
-        kw_associate: _ => reservedWord("associate"),
-        kw_analyze: _ => reservedWord("analyze"),
-        kw_statement: _ => reservedWord("statement"),
-        kw_timing: _ => reservedWord("timing"),
-        kw_compound: _ => reservedWord("compound"),
-        kw_nested: _ => reservedWord("nested"),
-        kw_instead: _ => reservedWord("instead"),
-        kw_precedes: _ => reservedWord("precedes"),
-        kw_follows: _ => reservedWord("follows"),
-        kw_crossedition: _ => reservedWord("crossedition"),
-        kw_forward: _ => reservedWord("forward"),
-        kw_each: _ => reservedWord("each"),
-        kw_parent: _ => reservedWord("parent"),
-        kw_new: _ => reservedWord("new"),
-        kw_old: _ => reservedWord("old"),
-        kw_referencing: _ => reservedWord("referencing"),
-        kw_before: _ => reservedWord("before"),
-        kw_after: _ => reservedWord("after"),
-        kw_insert: _ => reservedWord("insert"),
-        kw_matched: _ => reservedWord("matched"),
-        kw_merge: _ => reservedWord("merge"),
-        kw_pairs: _ => reservedWord("pairs"),
-        kw_indices: _ => reservedWord("indices"),
-        kw_values: _ => reservedWord("values"),
-        kw_value: _ => reservedWord("value"),
-        kw_repeat: _ => reservedWord("repeat"),
-        kw_while: _ => reservedWord("while"),
-        kw_reverse: _ => reservedWord("reverse"),
-        kw_mutable: _ => reservedWord("mutable"),
-        kw_immutable: _ => reservedWord("immutable"),
-        kw_returning: _ => reservedWord("returning"),
-        kw_execute: _ => reservedWord("execute"),
-        kw_immediate: _ => reservedWord("immediate"),
-        kw_open: _ => reservedWord("open"),
-        kw_goto: _ => reservedWord("goto"),
-        kw_pipe: _ => reservedWord("pipe"),
-        kw_raise: _ => reservedWord("raise"),
-        kw_exit: _ => reservedWord("exit"),
-        kw_others: _ => reservedWord("others"),
-        kw_continue: _ => reservedWord("continue"),
-        kw_trim: _ => reservedWord("trim"),
-        kw_close: _ => reservedWord("close"),
-        kw_loop: _ => reservedWord("loop"),
-        kw_group: _ => reservedWord("group"),
-        kw_having: _ => reservedWord("having"),
-        kw_connect: _ => reservedWord("connect"),
-        kw_nocycle: _ => reservedWord("nocycle"),
-        kw_start: _ => reservedWord("start"),
-        kw_bulk: _ => reservedWord("bulk"),
-        kw_collect: _ => reservedWord("collect"),
-        kw_where: _ => reservedWord("where"),
-        kw_read: _ => reservedWord("read"),
-        kw_check: _ => reservedWord("check"),
-        kw_option: _ => reservedWord("option"),
-        kw_constraint: _ => reservedWord("constraint"),
-        kw_lateral: _ => reservedWord("lateral"),
-        kw_sample: _ => reservedWord("sample"),
-        kw_block: _ => reservedWord("block"),
-        kw_seed: _ => reservedWord("seed"),
-        kw_shards: _ => reservedWord("shards"),
-        kw_badfile: _ => reservedWord("badfile"),
-        kw_logfile: _ => reservedWord("logfile"),
-        kw_discardfile: _ => reservedWord("discardfile"),
-        kw_reject: _ => reservedWord("reject"),
-        kw_unlimited: _ => reservedWord("unlimited"),
-        kw_access: _ => reservedWord("access"),
-        kw_location: _ => reservedWord("location"),
-        kw_directory: _ => reservedWord("directory"),
-        kw_shard: _ => reservedWord("shard"),
-        kw_containers: _ => reservedWord("containers"),
-        kw_apply: _ => reservedWord("apply"),
-        kw_full: _ => reservedWord("full"),
-        kw_left: _ => reservedWord("left"),
-        kw_right: _ => reservedWord("right"),
-        kw_outer: _ => reservedWord("outer"),
-        kw_partition: _ => reservedWord("partition"),
-        kw_subpartition: _ => reservedWord("subpartition"),
-        kw_on: _ => reservedWord("on"),
-        kw_select: _ => reservedWord("select"),
-        kw_from: _ => reservedWord("from"),
-        kw_distinct: _ => reservedWord("distinct"),
-        kw_unique: _ => reservedWord("unique"),
-        kw_view: _ => reservedWord("view"),
-        kw_aggregate: _ => reservedWord("aggregate"),
-        kw_measure: _ => reservedWord("measure"),
-        kw_measures: _ => reservedWord("measures"),
-        kw_fact: _ => reservedWord("fact"),
-        kw_filter: _ => reservedWord("filter"),
-        kw_hierarchies: _ => reservedWord("hierarchies"),
-        kw_using: _ => reservedWord("using"),
-        kw_analytic: _ => reservedWord("analytic"),
-        kw_cycle: _ => reservedWord("cycle"),
-        kw_search: _ => reservedWord("search"),
-        kw_depth: _ => reservedWord("depth"),
-        kw_breadth: _ => reservedWord("breadth"),
-        kw_minus: _ => reservedWord("minus"),
-        kw_union: _ => reservedWord("union"),
-        kw_intersect: _ => reservedWord("intersect"),
-        kw_all: _ => reservedWord("all"),
-        kw_offset: _ => reservedWord("offset"),
-        kw_rows: _ => reservedWord("rows"),
-        kw_fetch: _ => reservedWord("fetch"),
-        kw_percent: _ => reservedWord("percent"),
-        kw_only: _ => reservedWord("only"),
-        kw_ties: _ => reservedWord("ties"),
-        kw_asc: _ => reservedWord("asc"),
-        kw_nulls: _ => reservedWord("nulls"),
-        kw_desc: _ => reservedWord("desc"),
-        kw_siblings: _ => reservedWord("siblings"),
-        kw_nowait: _ => reservedWord("nowait"),
-        kw_wait: _ => reservedWord("wait"),
-        kw_skip: _ => reservedWord("skip"),
-        kw_locked: _ => reservedWord("locked"),
-        kw_lock: _ => reservedWord("lock"),
-        kw_for: _ => reservedWord("for"),
-        kw_update: _ => reservedWord("update"),
-        kw_delete: _ => reservedWord("delete"),
-        kw_create: _ => reservedWord("create"),
-        kw_alter: _ => reservedWord("alter"),
-        kw_package: _ => reservedWord("package"),
-        kw_function: _ => reservedWord("function"),
-        kw_procedure: _ => reservedWord("procedure"),
-        kw_trigger: _ => reservedWord("trigger"),
-        kw_type: _ => reservedWord("type"),
-        kw_subtype: _ => reservedWord("subtype"),
-        kw_datatype_type: _ => reservedWord("%type"),
-        kw_datatype_rowtype: _ => reservedWord("%rowtype"),
-        kw_library: _ => reservedWord("library"),
-        kw_true: _ => reservedWord("true"),
-        kw_false: _ => reservedWord("false"),
-        kw_null: _ => reservedWord("null"),
-        kw_not: _ => reservedWord("not"),
-        kw_case: _ => reservedWord("case"),
-        kw_when: _ => reservedWord("when"),
-        kw_then: _ => reservedWord("then"),
-        kw_if: _ => reservedWord("if"),
-        kw_elsif: _ => reservedWord("elsif"),
-        kw_else: _ => reservedWord("else"),
-        kw_row: _ => reservedWord("row"),
-        kw_count: _ => reservedWord("count"),
-        kw_first: _ => reservedWord("first"),
-        kw_last: _ => reservedWord("last"),
-        kw_limit: _ => reservedWord("limit"),
-        kw_next: _ => reservedWord("next"),
-        kw_prior: _ => reservedWord("prior"),
-        kw_rowcount: _ => reservedWord("rowcount"),
-        kw_bulk_rowcount: _ => reservedWord("bulk_rowcount"),
-        kw_compile: _ => reservedWord("compile"),
-        kw_debug: _ => reservedWord("debug"),
-        kw_specification: _ => reservedWord("specification"),
-        kw_body: _ => reservedWord("body"),
-        kw_declare: _ => reservedWord("declare"),
-        kw_begin: _ => reservedWord("begin"),
-        kw_exception: _ => reservedWord("exception"),
-        kw_exceptions: _ => reservedWord("exceptions"),
-        kw_end: _ => reservedWord("end"),
-        kw_order: _ => reservedWord("order"),
-        kw_or: _ => reservedWord("or"),
-        kw_and: _ => reservedWord("and"),
-        kw_replace: _ => reservedWord("replace"),
-        kw_editionable: _ => reservedWord("editionable"),
-        kw_noneditionable: _ => reservedWord("noneditionable"),
-        kw_metadata: _ => reservedWord("metadata"),
-        kw_none: _ => reservedWord("none"),
-        kw_default: _ => reservedWord("default"),
-        kw_collation: _ => reservedWord("collation"),
-        kw_using_nls_comp: _ => reservedWord("using_nls_comp"),
-        kw_authid: _ => reservedWord("authid"),
-        kw_current_user: _ => reservedWord("current_user"),
-        kw_definer: _ => reservedWord("definer"),
-        kw_accessible: _ => reservedWord("accessible"),
-        kw_by: _ => reservedWord("by"),
-        kw_reuse: _ => reservedWord("reuse"),
-        kw_reset: _ => reservedWord("reset"),
-        kw_final: _ => reservedWord("final"),
-        kw_overriding: _ => reservedWord("overriding"),
-        kw_instantiable: _ => reservedWord("instantiable"),
-        kw_member: _ => reservedWord("member"),
-        kw_static: _ => reservedWord("static"),
-        kw_settings: _ => reservedWord("settings"),
-        kw_byte: _ => reservedWord("byte"),
-        kw_char: _ => reservedWord("char"),
-        kw_is: _ => reservedWord("is"),
-        kw_as: _ => reservedWord("as"),
-        kw_ref: _ => reservedWord("ref"),
-        kw_table: _ => reservedWord("table"),
-        kw_of: _ => reservedWord("of"),
-        kw_index: _ => reservedWord("index"),
-        kw_varray: _ => reservedWord("varray"),
-        kw_array: _ => reservedWord("array"),
-        kw_cursor: _ => reservedWord("cursor"),
-        kw_record: _ => reservedWord("record"),
-        kw_deterministic: _ => reservedWord("deterministic"),
-        kw_pipelined: _ => reservedWord("pipelined"),
-        kw_parallel_enable: _ => reservedWord("parallel_enable"),
-        kw_enable: _ => reservedWord("enable"),
-        kw_disable: _ => reservedWord("disable"),
-        kw_rename: _ => reservedWord("rename"),
-        kw_result_cache: _ => reservedWord("result_cache"),
-        kw_exists: _ => reservedWord("exists"),
-        kw_extend: _ => reservedWord("extend"),
-        kw_between: _ => reservedWord("between"),
-        kw_found: _ => reservedWord("found"),
-        kw_isopen: _ => reservedWord("isopen"),
-        kw_notfound: _ => reservedWord("notfound"),
-        kw_in: _ => reservedWord("in"),
-        kw_out: _ => reservedWord("out"),
-        kw_nocopy: _ => reservedWord("nocopy"),
-        kw_like: _ => reservedWord("like"),
-        kw_range: _ => reservedWord("range"),
-        kw_inserting: _ => reservedWord("inserting"),
-        kw_deleting: _ => reservedWord("deleting"),
-        kw_updating: _ => reservedWord("updating"),
-        kw_return: _ => reservedWord("return"),
-        kw_string: _ => reservedWord("string"),
-        kw_varchar2: _ => reservedWord("varchar2"),
-        kw_varchar: _ => reservedWord("varchar"),
-        kw_nvarchar2: _ => reservedWord("nvarchar2"),
-        kw_nchar: _ => reservedWord("nchar"),
-        kw_int: _ => reservedWord("int"),
-        kw_smallint: _ => reservedWord("smallint"),
-        kw_real: _ => reservedWord("real"),
-        kw_binary_float: _ => reservedWord("binary_float"),
-        kw_binary_double: _ => reservedWord("binary_double"),
-        kw_simple_float: _ => reservedWord("simple_float"),
-        kw_simple_double: _ => reservedWord("simple_double"),
-        kw_binary_integer: _ => reservedWord("binary_integer"),
-        kw_pls_integer: _ => reservedWord("pls_integer"),
-        kw_natural: _ => reservedWord("natural"),
-        kw_naturaln: _ => reservedWord("naturaln"),
-        kw_positive: _ => reservedWord("positive"),
-        kw_positiven: _ => reservedWord("positiven"),
-        kw_signtype: _ => reservedWord("signtype"),
-        kw_simple_integer: _ => reservedWord("simple_integer"),
-        kw_integer: _ => reservedWord("integer"),
-        kw_number: _ => reservedWord("number"),
-        kw_float: _ => reservedWord("float"),
-        kw_long: _ => reservedWord("long"),
-        kw_raw: _ => reservedWord("raw"),
-        kw_date: _ => reservedWord("date"),
-        kw_timestamp: _ => reservedWord("timestamp"),
-        kw_join: _ => reservedWord("join"),
-        kw_cross: _ => reservedWord("cross"),
-        kw_inner: _ => reservedWord("inner"),
-        kw_with: _ => reservedWord("with"),
-        kw_context: _ => reservedWord("context"),
-        kw_self: _ => reservedWord("self"),
-        kw_local: _ => reservedWord("local"),
-        kw_time: _ => reservedWord("time"),
-        kw_zone: _ => reservedWord("zone"),
-        kw_interval: _ => reservedWord("interval"),
-        kw_year: _ => reservedWord("year"),
-        kw_month: _ => reservedWord("month"),
-        kw_day: _ => reservedWord("day"),
-        kw_minute: _ => reservedWord("minute"),
-        kw_second: _ => reservedWord("second"),
-        kw_to: _ => reservedWord("to"),
-        kw_blob: _ => reservedWord("blob"),
-        kw_clob: _ => reservedWord("clob"),
-        kw_nclob: _ => reservedWord("nclob"),
-        kw_bfile: _ => reservedWord("bfile"),
-        kw_rowid: _ => reservedWord("rowid"),
-        kw_urowid: _ => reservedWord("urowid"),
-        kw_boolean: _ => reservedWord("boolean"),
-        kw_character: _ => reservedWord("character"),
-        kw_set: _ => reservedWord("set"),
-        kw_varying: _ => reservedWord("varying"),
-        kw_numeric: _ => reservedWord("numeric"),
-        kw_decimal: _ => reservedWord("decimal"),
-        kw_dec: _ => reservedWord("dec"),
-        kw_double: _ => reservedWord("double"),
-        kw_precision: _ => reservedWord("precision"),
-        kw_sys: _ => reservedWord("sys"),
-        kw_anydata: _ => reservedWord("anydata"),
-        kw_anytype: _ => reservedWord("anytype"),
-        kw_anydataset: _ => reservedWord("anydataset"),
-        kw_xmltype: _ => reservedWord("xmltype"),
-        kw_uritype: _ => reservedWord("uritype"),
-        kw_sdo_geometry: _ => reservedWord("sdo_geometry"),
-        kw_sdo_topo_geometry: _ => reservedWord("sdo_topo_geometry"),
-        kw_sdo_georaster: _ => reservedWord("sdo_georaster"),
-        kw_constant: _ => reservedWord("constant"),
-        kw_json_element_t: _ => reservedWord("json_element_t"),
-        kw_json_array_t: _ => reservedWord("json_array_t"),
-        kw_json_object_t: _ => reservedWord("json_object_t"),
-        kw_json_scalar_t: _ => reservedWord("json_scalar_t"),
-        kw_json_key_list: _ => reservedWord("json_key_list"),
-        kw_language: _ => reservedWord("language"),
-        kw_java: _ => reservedWord("java"),
-        kw_name: _ => reservedWord("name"),
-        kw_c: _ => reservedWord("c"),
-        kw_external: _ => reservedWord("external"),
-        kw_agent: _ => reservedWord("agent"),
-        kw_parameters: _ => reservedWord("parameters"),
-        kw_tdo: _ => reservedWord("tdo"),
-        kw_indicator: _ => reservedWord("indicator"),
-        kw_length: _ => reservedWord("length"),
-        kw_duration: _ => reservedWord("duration"),
-        kw_maxlen: _ => reservedWord("maxlen"),
-        kw_charsetid: _ => reservedWord("charsetid"),
-        kw_charsetfrom: _ => reservedWord("charsetfrom"),
-        kw_struct: _ => reservedWord("struct"),
-        kw_reference: _ => reservedWord("reference"),
-        kw_object: _ => reservedWord("object"),
-        kw_map: _ => reservedWord("map"),
-        kw_constructor: _ => reservedWord("constructor"),
-        kw_result: _ => reservedWord("result"),
-        kw_invalidate: _ => reservedWord("invalidate"),
-        kw_cascade: _ => reservedWord("cascade"),
-        kw_convert: _ => reservedWord("convert"),
-        kw_substitutable: _ => reservedWord("substitutable"),
-        kw_including: _ => reservedWord("including"),
-        kw_data: _ => reservedWord("data"),
-        kw_force: _ => reservedWord("force"),
-        kw_comment: _ => reservedWord("comment"),
-        kw_write: _ => reservedWord("write"),
-        kw_batch: _ => reservedWord("batch"),
-        kw_into: _ => reservedWord("into"),
-        kw_add: _ => reservedWord("add"),
-        kw_drop: _ => reservedWord("drop"),
-        kw_modify: _ => reservedWord("modify"),
-        kw_attribute: _ => reservedWord("attribute"),
-        kw_element: _ => reservedWord("element"),
-        kw_validate: _ => reservedWord("validate"),
-        kw_pragma: _ => reservedWord("pragma"),
-        kw_asterisk: _ => reservedWord("*"),
-        kw_pivot: _ => reservedWord("pivot"),
-        kw_xml: _ => reservedWord("xml"),
-        kw_commit: _ => reservedWord("commit"),
-        kw_rollback: _ => reservedWord("rollback"),
-        kw_work: _ => reservedWord("work"),
-        kw_savepoint: _ => reservedWord("savepoint"),
-        kw_transaction: _ => reservedWord("transaction"),
-        kw_isolation: _ => reservedWord("isolation"),
-        kw_level: _ => reservedWord("level"),
-        kw_serializable: _ => reservedWord("serializable"),
-        kw_commtted: _ => reservedWord("committed"),
-        kw_segment: _ => reservedWord("segment"),
-        kw_use: _ => reservedWord("use"),
-        kw_mode: _ => reservedWord("mode"),
-        kw_errors: _ => reservedWord("errors"),
-        kw_log: _ => reservedWord("log"),
+
+
+
+
+
+        // KEYWORDS
+        kw_access: _ => kw("access"),
+        kw_accessible: _ => kw("accessible"),
+        kw_add: _ => kw("add"),
+        kw_after: _ => kw("after"),
+        kw_agent: _ => kw("agent"),
+        kw_aggregate: _ => kw("aggregate"),
+        kw_all: _ => kw("all"),
+        kw_alter: _ => kw("alter"),
+        kw_analytic: _ => kw("analytic"),
+        kw_analyze: _ => kw("analyze"),
+        kw_and: _ => kw("and"),
+        kw_any: _ => kw("any"),
+        kw_anydata: _ => kw("anydata"),
+        kw_anydataset: _ => kw("anydataset"),
+        kw_anytype: _ => kw("anytype"),
+        kw_apply: _ => kw("apply"),
+        kw_array: _ => kw("array"),
+        kw_as: _ => kw("as"),
+        kw_asc: _ => kw("asc"),
+        kw_associate: _ => kw("associate"),
+        kw_asterisk: _ => kw("*"),
+        kw_attribute: _ => kw("attribute"),
+        kw_audit: _ => kw("audit"),
+        kw_authid: _ => kw("authid"),
+        kw_autonomous_transaction: _ => kw("autonomous_transaction"),
+        kw_avg: _ => kw("avg"),
+        kw_badfile: _ => kw("badfile"),
+        kw_batch: _ => kw("batch"),
+        kw_before: _ => kw("before"),
+        kw_begin: _ => kw("begin"),
+        kw_between: _ => kw("between"),
+        kw_bfile: _ => kw("bfile"),
+        kw_binary_double: _ => kw("binary_double"),
+        kw_binary_float: _ => kw("binary_float"),
+        kw_binary_integer: _ => kw("binary_integer"),
+        kw_blob: _ => kw("blob"),
+        kw_block: _ => kw("block"),
+        kw_body: _ => kw("body"),
+        kw_boolean: _ => kw("boolean"),
+        kw_breadth: _ => kw("breadth"),
+        kw_bulk_rowcount: _ => kw("bulk_rowcount"),
+        kw_bulk: _ => kw("bulk"),
+        kw_by: _ => kw("by"),
+        kw_byte: _ => kw("byte"),
+        kw_c: _ => kw("c"),
+        kw_cache: _ => kw("cache"),
+        kw_cascade: _ => kw("cascade"),
+        kw_case: _ => kw("case"),
+        kw_char: _ => kw("char"),
+        kw_character: _ => kw("character"),
+        kw_charsetfrom: _ => kw("charsetfrom"),
+        kw_charsetid: _ => kw("charsetid"),
+        kw_check: _ => kw("check"),
+        kw_clob: _ => kw("clob"),
+        kw_clone: _ => kw("clone"),
+        kw_close: _ => kw("close"),
+        kw_cluster: _ => kw("cluster"),
+        kw_collation: _ => kw("collation"),
+        kw_collect: _ => kw("collect"),
+        kw_comment: _ => kw("comment"),
+        kw_commit: _ => kw("commit"),
+        kw_commtted: _ => kw("committed"),
+        kw_compile: _ => kw("compile"),
+        kw_compound: _ => kw("compound"),
+        kw_connect: _ => kw("connect"),
+        kw_constant: _ => kw("constant"),
+        kw_constraint: _ => kw("constraint"),
+        kw_constructor: _ => kw("constructor"),
+        kw_container: _ => kw("container"),
+        kw_containers: _ => kw("containers"),
+        kw_context: _ => kw("context"),
+        kw_continue: _ => kw("continue"),
+        kw_convert: _ => kw("convert"),
+        kw_count: _ => kw("count"),
+        kw_create: _ => kw("create"),
+        kw_credential: _ => kw("credential"),
+        kw_cross: _ => kw("cross"),
+        kw_crossedition: _ => kw("crossedition"),
+        kw_current_user: _ => kw("current_user"),
+        kw_current: _ => kw("current"),
+        kw_cursor: _ => kw("cursor"),
+        kw_cycle: _ => kw("cycle"),
+        kw_cycle: _ => kw("cycle"),
+        kw_data: _ => kw("data"),
+        kw_database: _ => kw("database"),
+        kw_datatype_rowtype: _ => kw("%rowtype"),
+        kw_datatype_type: _ => kw("%type"),
+        kw_date: _ => kw("date"),
+        kw_day: _ => kw("day"),
+        kw_db_role_change: _ => kw("db_role_change"),
+        kw_ddl: _ => kw("ddl"),
+        kw_debug: _ => kw("debug"),
+        kw_decimal: _ => kw("decimal"),
+        kw_declare: _ => kw("declare"),
+        kw_default: _ => kw("default"),
+        kw_definer: _ => kw("definer"),
+        kw_delete: _ => kw("delete"),
+        kw_deleting: _ => kw("deleting"),
+        kw_dense_rank: _ => kw("dense_rank"),
+        kw_depth: _ => kw("depth"),
+        kw_desc: _ => kw("desc"),
+        kw_deterministic: _ => kw("deterministic"),
+        kw_directory: _ => kw("directory"),
+        kw_disable: _ => kw("disable"),
+        kw_disassociate: _ => kw("disassociate"),
+        kw_discardfile: _ => kw("discardfile"),
+        kw_distinct: _ => kw("distinct"),
+        kw_double: _ => kw("double"),
+        kw_drop: _ => kw("drop"),
+        kw_dup_val_on_index: _ => kw("dup_val_on_index"),
+        kw_duration: _ => kw("duration"),
+        kw_each: _ => kw("each"),
+        kw_editionable: _ => kw("editionable"),
+        kw_element: _ => kw("element"),
+        kw_else: _ => kw("else"),
+        kw_elsif: _ => kw("elsif"),
+        kw_enable: _ => kw("enable"),
+        kw_end: _ => kw("end"),
+        kw_errors: _ => kw("errors"),
+        kw_exception_init: _ => kw("exception_init"),
+        kw_exception: _ => kw("exception"),
+        kw_exceptions: _ => kw("exceptions"),
+        kw_execute: _ => kw("execute"),
+        kw_exists: _ => kw("exists"),
+        kw_exit: _ => kw("exit"),
+        kw_extend: _ => kw("extend"),
+        kw_external: _ => kw("external"),
+        kw_fact: _ => kw("fact"),
+        kw_false: _ => kw("false"),
+        kw_fetch: _ => kw("fetch"),
+        kw_filter: _ => kw("filter"),
+        kw_final: _ => kw("final"),
+        kw_first: _ => kw("first"),
+        kw_float: _ => kw("float"),
+        kw_following: _ => kw("following"),
+        kw_follows: _ => kw("follows"),
+        kw_for: _ => kw("for"),
+        kw_force: _ => kw("force"),
+        kw_foreign: _ => kw("foreign"),
+        kw_forward: _ => kw("forward"),
+        kw_found: _ => kw("found"),
+        kw_from: _ => kw("from"),
+        kw_full: _ => kw("full"),
+        kw_function: _ => kw("function"),
+        kw_get: _ => kw("get"),
+        kw_goto: _ => kw("goto"),
+        kw_grant: _ => kw("grant"),
+        kw_group: _ => kw("group"),
+        kw_hash: _ => kw("hash"),
+        kw_having: _ => kw("having"),
+        kw_hierarchies: _ => kw("hierarchies"),
+        kw_if: _ => kw("if"),
+        kw_immediate: _ => kw("immediate"),
+        kw_immutable: _ => kw("immutable"),
+        kw_in: _ => kw("in"),
+        kw_including: _ => kw("including"),
+        kw_increment: _ => kw("increment"),
+        kw_index: _ => kw("index"),
+        kw_indicator: _ => kw("indicator"),
+        kw_indices: _ => kw("indices"),
+        kw_inline: _ => kw("inline"),
+        kw_inner: _ => kw("inner"),
+        kw_insert: _ => kw("insert"),
+        kw_inserting: _ => kw("inserting"),
+        kw_instantiable: _ => kw("instantiable"),
+        kw_instead: _ => kw("instead"),
+        kw_int: _ => kw("int"),
+        kw_integer: _ => kw("integer"),
+        kw_intersect: _ => kw("intersect"),
+        kw_interval: _ => kw("interval"),
+        kw_into: _ => kw("into"),
+        kw_invalidate: _ => kw("invalidate"),
+        kw_is: _ => kw("is"),
+        kw_isolation: _ => kw("isolation"),
+        kw_isopen: _ => kw("isopen"),
+        kw_java: _ => kw("java"),
+        kw_join: _ => kw("join"),
+        kw_json_array_t: _ => kw("json_array_t"),
+        kw_json_element_t: _ => kw("json_element_t"),
+        kw_json_key_list: _ => kw("json_key_list"),
+        kw_json_object_t: _ => kw("json_object_t"),
+        kw_json_scalar_t: _ => kw("json_scalar_t"),
+        kw_json: _ => kw("json"),
+        kw_key: _ => kw("key"),
+        kw_language: _ => kw("language"),
+        kw_last: _ => kw("last"),
+        kw_lateral: _ => kw("lateral"),
+        kw_left: _ => kw("left"),
+        kw_length: _ => kw("length"),
+        kw_level: _ => kw("level"),
+        kw_library: _ => kw("library"),
+        kw_like: _ => kw("like"),
+        kw_limit: _ => kw("limit"),
+        kw_local: _ => kw("local"),
+        kw_location: _ => kw("location"),
+        kw_lock: _ => kw("lock"),
+        kw_locked: _ => kw("locked"),
+        kw_log: _ => kw("log"),
+        kw_logfile: _ => kw("logfile"),
+        kw_logging: _ => kw("logging"),
+        kw_logoff: _ => kw("logoff"),
+        kw_logon: _ => kw("logon"),
+        kw_long: _ => kw("long"),
+        kw_loop: _ => kw("loop"),
+        kw_map: _ => kw("map"),
+        kw_matched: _ => kw("matched"),
+        kw_max: _ => kw("max"),
+        kw_maxlen: _ => kw("maxlen"),
+        kw_maxvalue: _ => kw("maxvalue"),
+        kw_measure: _ => kw("measure"),
+        kw_measures: _ => kw("measures"),
+        kw_member: _ => kw("member"),
+        kw_merge: _ => kw("merge"),
+        kw_metadata: _ => kw("metadata"),
+        kw_min: _ => kw("min"),
+        kw_minus: _ => kw("minus"),
+        kw_minute: _ => kw("minute"),
+        kw_minvalue: _ => kw("minvalue"),
+        kw_mode: _ => kw("mode"),
+        kw_modify: _ => kw("modify"),
+        kw_month: _ => kw("month"),
+        kw_mutable: _ => kw("mutable"),
+        kw_name: _ => kw("name"),
+        kw_national: _ => kw("national"),
+        kw_natural: _ => kw("natural"),
+        kw_naturaln: _ => kw("naturaln"),
+        kw_nchar: _ => kw("nchar"),
+        kw_nclob: _ => kw("nclob"),
+        kw_nested: _ => kw("nested"),
+        kw_new: _ => kw("new"),
+        kw_next: _ => kw("next"),
+        kw_noaudit: _ => kw("noaudit"),
+        kw_nocache: _ => kw("nocache"),
+        kw_nocopy: _ => kw("nocopy"),
+        kw_nocycle: _ => kw("nocycle"),
+        kw_nocycle: _ => kw("nocycle"),
+        kw_nologging: _ => kw("nologging"),
+        kw_none: _ => kw("none"),
+        kw_noneditionable: _ => kw("noneditionable"),
+        kw_noorder: _ => kw("noorder"),
+        kw_not: _ => kw("not"),
+        kw_notfound: _ => kw("notfound"),
+        kw_nowait: _ => kw("nowait"),
+        kw_null: _ => kw("null"),
+        kw_nulls: _ => kw("nulls"),
+        kw_number: _ => kw("number"),
+        kw_numeric: _ => kw("numeric"),
+        kw_nvarchar2: _ => kw("nvarchar2"),
+        kw_object: _ => kw("object"),
+        kw_of: _ => kw("of"),
+        kw_offset: _ => kw("offset"),
+        kw_oid: _ => kw("oid"),
+        kw_old: _ => kw("old"),
+        kw_on: _ => kw("on"),
+        kw_only: _ => kw("only"),
+        kw_open: _ => kw("open"),
+        kw_option: _ => kw("option"),
+        kw_or: _ => kw("or"),
+        kw_order: _ => kw("order"),
+        kw_order: _ => kw("order"),
+        kw_others: _ => kw("others"),
+        kw_out: _ => kw("out"),
+        kw_outer: _ => kw("outer"),
+        kw_over: _ => kw("over"),
+        kw_overriding: _ => kw("overriding"),
+        kw_package: _ => kw("package"),
+        kw_pairs: _ => kw("pairs"),
+        kw_parallel_enable: _ => kw("parallel_enable"),
+        kw_parameters: _ => kw("parameters"),
+        kw_parent: _ => kw("parent"),
+        kw_partition: _ => kw("partition"),
+        kw_percent: _ => kw("percent"),
+        kw_persistable: _ => kw("persistable"),
+        kw_pipe: _ => kw("pipe"),
+        kw_pipelined: _ => kw("pipelined"),
+        kw_pivot: _ => kw("pivot"),
+        kw_pls_integer: _ => kw("pls_integer"),
+        kw_pluggable: _ => kw("pluggable"),
+        kw_positive: _ => kw("positive"),
+        kw_positiven: _ => kw("positiven"),
+        kw_pragma: _ => kw("pragma"),
+        kw_pragma: _ => kw("pragma"),
+        kw_precedes: _ => kw("precedes"),
+        kw_preceding: _ => kw("preceding"),
+        kw_precision: _ => kw("precision"),
+        kw_primary: _ => kw("primary"),
+        kw_prior: _ => kw("prior"),
+        kw_procedure: _ => kw("procedure"),
+        kw_raise_application_error: _ => kw("raise_application_error"),
+        kw_raise: _ => kw("raise"),
+        kw_range: _ => kw("range"),
+        kw_rank: _ => kw("rank"),
+        kw_raw: _ => kw("raw"),
+        kw_read: _ => kw("read"),
+        kw_real: _ => kw("real"),
+        kw_record: _ => kw("record"),
+        kw_ref: _ => kw("ref"),
+        kw_refcursor: _ => kw("refcursor"),
+        kw_reference: _ => kw("reference"),
+        kw_references: _ => kw("references"),
+        kw_referencing: _ => kw("referencing"),
+        kw_reject: _ => kw("reject"),
+        kw_relies_on: _ => kw("relies_on"),
+        kw_rename: _ => kw("rename"),
+        kw_repeat: _ => kw("repeat"),
+        kw_replace: _ => kw("replace"),
+        kw_reset: _ => kw("reset"),
+        kw_result_cache: _ => kw("result_cache"),
+        kw_result: _ => kw("result"),
+        kw_return: _ => kw("return"),
+        kw_returning: _ => kw("returning"),
+        kw_reuse: _ => kw("reuse"),
+        kw_reverse: _ => kw("reverse"),
+        kw_revoke: _ => kw("revoke"),
+        kw_right: _ => kw("right"),
+        kw_rollback: _ => kw("rollback"),
+        kw_row_number: _ => kw("row_number"),
+        kw_row: _ => kw("row"),
+        kw_rowcount: _ => kw("rowcount"),
+        kw_rowid: _ => kw("rowid"),
+        kw_rows: _ => kw("rows"),
+        kw_sample: _ => kw("sample"),
+        kw_savepoint: _ => kw("savepoint"),
+        kw_schema: _ => kw("schema"),
+        kw_sdo_geometry: _ => kw("sdo_geometry"),
+        kw_sdo_georaster: _ => kw("sdo_georaster"),
+        kw_sdo_topo_geometry: _ => kw("sdo_topo_geometry"),
+        kw_search: _ => kw("search"),
+        kw_second: _ => kw("second"),
+        kw_seed: _ => kw("seed"),
+        kw_segment: _ => kw("segment"),
+        kw_select: _ => kw("select"),
+        kw_self: _ => kw("self"),
+        kw_sequence: _ => kw("sequence"),
+        kw_serializable: _ => kw("serializable"),
+        kw_servererror: _ => kw("servererror"),
+        kw_set: _ => kw("set"),
+        kw_settings: _ => kw("settings"),
+        kw_shard: _ => kw("shard"),
+        kw_shards: _ => kw("shards"),
+        kw_shutdown: _ => kw("shutdown"),
+        kw_siblings: _ => kw("siblings"),
+        kw_signtype: _ => kw("signtype"),
+        kw_simple_double: _ => kw("simple_double"),
+        kw_simple_float: _ => kw("simple_float"),
+        kw_simple_integer: _ => kw("simple_integer"),
+        kw_skip: _ => kw("skip"),
+        kw_smallint: _ => kw("smallint"),
+        kw_specification: _ => kw("specification"),
+        kw_sql: _ => kw("sql"),
+        kw_start: _ => kw("start"),
+        kw_start: _ => kw("start"),
+        kw_startup: _ => kw("startup"),
+        kw_statement: _ => kw("statement"),
+        kw_static: _ => kw("static"),
+        kw_statistics: _ => kw("statistics"),
+        kw_string: _ => kw("string"),
+        kw_struct: _ => kw("struct"),
+        kw_subpartition: _ => kw("subpartition"),
+        kw_substitutable: _ => kw("substitutable"),
+        kw_subtype: _ => kw("subtype"),
+        kw_sum: _ => kw("sum"),
+        kw_suspend: _ => kw("suspend"),
+        kw_sys: _ => kw("sys"),
+        kw_table: _ => kw("table"),
+        kw_tablespace: _ => kw("tablespace"),
+        kw_tdo: _ => kw("tdo"),
+        kw_then: _ => kw("then"),
+        kw_ties: _ => kw("ties"),
+        kw_time: _ => kw("time"),
+        kw_timestamp: _ => kw("timestamp"),
+        kw_timing: _ => kw("timing"),
+        kw_to: _ => kw("to"),
+        kw_transaction: _ => kw("transaction"),
+        kw_trigger: _ => kw("trigger"),
+        kw_trim: _ => kw("trim"),
+        kw_true: _ => kw("true"),
+        kw_truncate: _ => kw("truncate"),
+        kw_type: _ => kw("type"),
+        kw_unbounded: _ => kw("unbounded"),
+        kw_under: _ => kw("under"),
+        kw_union: _ => kw("union"),
+        kw_unique: _ => kw("unique"),
+        kw_unlimited: _ => kw("unlimited"),
+        kw_unplug: _ => kw("unplug"),
+        kw_update: _ => kw("update"),
+        kw_updating: _ => kw("updating"),
+        kw_uritype: _ => kw("uritype"),
+        kw_urowid: _ => kw("urowid"),
+        kw_use: _ => kw("use"),
+        kw_using_nls_comp: _ => kw("using_nls_comp"),
+        kw_using: _ => kw("using"),
+        kw_validate: _ => kw("validate"),
+        kw_value: _ => kw("value"),
+        kw_values: _ => kw("values"),
+        kw_varchar: _ => kw("varchar"),
+        kw_varchar2: _ => kw("varchar2"),
+        kw_varray: _ => kw("varray"),
+        kw_varying: _ => kw("varying"),
+        kw_view: _ => kw("view"),
+        kw_wait: _ => kw("wait"),
+        kw_when: _ => kw("when"),
+        kw_where: _ => kw("where"),
+        kw_while: _ => kw("while"),
+        kw_with: _ => kw("with"),
+        kw_work: _ => kw("work"),
+        kw_write: _ => kw("write"),
+        kw_xml: _ => kw("xml"),
+        kw_xmltype: _ => kw("xmltype"),
+        kw_year: _ => kw("year"),
+        kw_zone: _ => kw("zone"),
     },
 });
-

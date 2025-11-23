@@ -641,6 +641,116 @@
     }
   },
   {
+    "type": "alter_sequence",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "float",
+          "named": true
+        },
+        {
+          "type": "kw_alter",
+          "named": true
+        },
+        {
+          "type": "kw_by",
+          "named": true
+        },
+        {
+          "type": "kw_cache",
+          "named": true
+        },
+        {
+          "type": "kw_cycle",
+          "named": true
+        },
+        {
+          "type": "kw_increment",
+          "named": true
+        },
+        {
+          "type": "kw_maxvalue",
+          "named": true
+        },
+        {
+          "type": "kw_minvalue",
+          "named": true
+        },
+        {
+          "type": "kw_nocache",
+          "named": true
+        },
+        {
+          "type": "kw_nocycle",
+          "named": true
+        },
+        {
+          "type": "kw_noorder",
+          "named": true
+        },
+        {
+          "type": "kw_order",
+          "named": true
+        },
+        {
+          "type": "kw_sequence",
+          "named": true
+        },
+        {
+          "type": "kw_start",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "alter_table",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "kw_add",
+          "named": true
+        },
+        {
+          "type": "kw_alter",
+          "named": true
+        },
+        {
+          "type": "kw_table",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
+          "named": true
+        },
+        {
+          "type": "table_element",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "alter_trigger",
     "named": true,
     "fields": {
@@ -1480,9 +1590,13 @@
       }
     },
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
         {
           "type": "kw_new",
           "named": true
@@ -1544,10 +1658,6 @@
           "named": true
         },
         {
-          "type": "end_obj_named",
-          "named": true
-        },
-        {
           "type": "exception_declaration",
           "named": true
         },
@@ -1601,6 +1711,10 @@
         },
         {
           "type": "parameter_declaration",
+          "named": true
+        },
+        {
+          "type": "pragma_declaration",
           "named": true
         },
         {
@@ -1747,6 +1861,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -1819,6 +1937,10 @@
           "named": true
         },
         {
+          "type": "exception_block",
+          "named": true
+        },
+        {
           "type": "exception_declaration",
           "named": true
         },
@@ -1836,6 +1958,10 @@
         },
         {
           "type": "kw_as",
+          "named": true
+        },
+        {
+          "type": "kw_begin",
           "named": true
         },
         {
@@ -1859,6 +1985,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -1868,6 +1998,10 @@
         },
         {
           "type": "sharing_clause",
+          "named": true
+        },
+        {
+          "type": "statement",
           "named": true
         },
         {
@@ -1947,10 +2081,6 @@
           "named": true
         },
         {
-          "type": "end_obj_named",
-          "named": true
-        },
-        {
           "type": "exception_declaration",
           "named": true
         },
@@ -1995,6 +2125,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -2020,6 +2154,85 @@
         },
         {
           "type": "type_definition_sub",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "create_sequence",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "float",
+          "named": true
+        },
+        {
+          "type": "kw_by",
+          "named": true
+        },
+        {
+          "type": "kw_cache",
+          "named": true
+        },
+        {
+          "type": "kw_create",
+          "named": true
+        },
+        {
+          "type": "kw_cycle",
+          "named": true
+        },
+        {
+          "type": "kw_increment",
+          "named": true
+        },
+        {
+          "type": "kw_maxvalue",
+          "named": true
+        },
+        {
+          "type": "kw_minvalue",
+          "named": true
+        },
+        {
+          "type": "kw_nocache",
+          "named": true
+        },
+        {
+          "type": "kw_nocycle",
+          "named": true
+        },
+        {
+          "type": "kw_noorder",
+          "named": true
+        },
+        {
+          "type": "kw_order",
+          "named": true
+        },
+        {
+          "type": "kw_sequence",
+          "named": true
+        },
+        {
+          "type": "kw_start",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
           "named": true
         }
       ]
@@ -2055,7 +2268,7 @@
       "required": true,
       "types": [
         {
-          "type": "kw_create",
+          "type": "create_obj",
           "named": true
         },
         {
@@ -2074,76 +2287,19 @@
     }
   },
   {
-    "type": "create_table_datatype",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "byte_char",
-          "named": true
-        },
-        {
-          "type": "float",
-          "named": true
-        },
-        {
-          "type": "kw_blob",
-          "named": true
-        },
-        {
-          "type": "kw_char",
-          "named": true
-        },
-        {
-          "type": "kw_clob",
-          "named": true
-        },
-        {
-          "type": "kw_date",
-          "named": true
-        },
-        {
-          "type": "kw_float",
-          "named": true
-        },
-        {
-          "type": "kw_nchar",
-          "named": true
-        },
-        {
-          "type": "kw_number",
-          "named": true
-        },
-        {
-          "type": "kw_nvarchar2",
-          "named": true
-        },
-        {
-          "type": "kw_timestamp",
-          "named": true
-        },
-        {
-          "type": "kw_varchar",
-          "named": true
-        },
-        {
-          "type": "kw_varchar2",
-          "named": true
-        },
-        {
-          "type": "number",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "create_trigger",
     "named": true,
     "fields": {
+      "column": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
       "schema_name": {
         "multiple": false,
         "required": false,
@@ -2183,10 +2339,6 @@
         },
         {
           "type": "default_collation_clause",
-          "named": true
-        },
-        {
-          "type": "dml_event_clause",
           "named": true
         },
         {
@@ -2475,6 +2627,10 @@
         },
         {
           "type": "plsql_block",
+          "named": true
+        },
+        {
+          "type": "pragma_declaration",
           "named": true
         },
         {
@@ -2875,7 +3031,15 @@
       "required": true,
       "types": [
         {
+          "type": "byte_char",
+          "named": true
+        },
+        {
           "type": "cursor_declaration_parameters",
+          "named": true
+        },
+        {
+          "type": "float",
           "named": true
         },
         {
@@ -2883,19 +3047,179 @@
           "named": true
         },
         {
+          "type": "kw_bfile",
+          "named": true
+        },
+        {
+          "type": "kw_binary_double",
+          "named": true
+        },
+        {
+          "type": "kw_binary_float",
+          "named": true
+        },
+        {
+          "type": "kw_blob",
+          "named": true
+        },
+        {
+          "type": "kw_boolean",
+          "named": true
+        },
+        {
+          "type": "kw_char",
+          "named": true
+        },
+        {
+          "type": "kw_character",
+          "named": true
+        },
+        {
+          "type": "kw_clob",
+          "named": true
+        },
+        {
           "type": "kw_cursor",
           "named": true
         },
         {
-          "type": "kw_datatype_rowtype",
+          "type": "kw_date",
           "named": true
         },
         {
-          "type": "kw_datatype_type",
+          "type": "kw_day",
+          "named": true
+        },
+        {
+          "type": "kw_decimal",
+          "named": true
+        },
+        {
+          "type": "kw_double",
+          "named": true
+        },
+        {
+          "type": "kw_float",
+          "named": true
+        },
+        {
+          "type": "kw_int",
+          "named": true
+        },
+        {
+          "type": "kw_integer",
+          "named": true
+        },
+        {
+          "type": "kw_interval",
+          "named": true
+        },
+        {
+          "type": "kw_local",
+          "named": true
+        },
+        {
+          "type": "kw_long",
+          "named": true
+        },
+        {
+          "type": "kw_month",
+          "named": true
+        },
+        {
+          "type": "kw_national",
+          "named": true
+        },
+        {
+          "type": "kw_nchar",
+          "named": true
+        },
+        {
+          "type": "kw_nclob",
+          "named": true
+        },
+        {
+          "type": "kw_number",
+          "named": true
+        },
+        {
+          "type": "kw_numeric",
+          "named": true
+        },
+        {
+          "type": "kw_nvarchar2",
+          "named": true
+        },
+        {
+          "type": "kw_precision",
+          "named": true
+        },
+        {
+          "type": "kw_raw",
+          "named": true
+        },
+        {
+          "type": "kw_real",
           "named": true
         },
         {
           "type": "kw_return",
+          "named": true
+        },
+        {
+          "type": "kw_rowid",
+          "named": true
+        },
+        {
+          "type": "kw_second",
+          "named": true
+        },
+        {
+          "type": "kw_smallint",
+          "named": true
+        },
+        {
+          "type": "kw_time",
+          "named": true
+        },
+        {
+          "type": "kw_timestamp",
+          "named": true
+        },
+        {
+          "type": "kw_to",
+          "named": true
+        },
+        {
+          "type": "kw_urowid",
+          "named": true
+        },
+        {
+          "type": "kw_varchar",
+          "named": true
+        },
+        {
+          "type": "kw_varchar2",
+          "named": true
+        },
+        {
+          "type": "kw_varying",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "kw_year",
+          "named": true
+        },
+        {
+          "type": "kw_zone",
+          "named": true
+        },
+        {
+          "type": "number",
           "named": true
         },
         {
@@ -2956,7 +3280,15 @@
       "required": true,
       "types": [
         {
+          "type": "byte_char",
+          "named": true
+        },
+        {
           "type": "cursor_declaration_parameters",
+          "named": true
+        },
+        {
+          "type": "float",
           "named": true
         },
         {
@@ -2964,15 +3296,71 @@
           "named": true
         },
         {
+          "type": "kw_bfile",
+          "named": true
+        },
+        {
+          "type": "kw_binary_double",
+          "named": true
+        },
+        {
+          "type": "kw_binary_float",
+          "named": true
+        },
+        {
+          "type": "kw_blob",
+          "named": true
+        },
+        {
+          "type": "kw_boolean",
+          "named": true
+        },
+        {
+          "type": "kw_char",
+          "named": true
+        },
+        {
+          "type": "kw_character",
+          "named": true
+        },
+        {
+          "type": "kw_clob",
+          "named": true
+        },
+        {
           "type": "kw_cursor",
           "named": true
         },
         {
-          "type": "kw_datatype_rowtype",
+          "type": "kw_date",
           "named": true
         },
         {
-          "type": "kw_datatype_type",
+          "type": "kw_day",
+          "named": true
+        },
+        {
+          "type": "kw_decimal",
+          "named": true
+        },
+        {
+          "type": "kw_double",
+          "named": true
+        },
+        {
+          "type": "kw_float",
+          "named": true
+        },
+        {
+          "type": "kw_int",
+          "named": true
+        },
+        {
+          "type": "kw_integer",
+          "named": true
+        },
+        {
+          "type": "kw_interval",
           "named": true
         },
         {
@@ -2980,7 +3368,111 @@
           "named": true
         },
         {
+          "type": "kw_local",
+          "named": true
+        },
+        {
+          "type": "kw_long",
+          "named": true
+        },
+        {
+          "type": "kw_month",
+          "named": true
+        },
+        {
+          "type": "kw_national",
+          "named": true
+        },
+        {
+          "type": "kw_nchar",
+          "named": true
+        },
+        {
+          "type": "kw_nclob",
+          "named": true
+        },
+        {
+          "type": "kw_number",
+          "named": true
+        },
+        {
+          "type": "kw_numeric",
+          "named": true
+        },
+        {
+          "type": "kw_nvarchar2",
+          "named": true
+        },
+        {
+          "type": "kw_precision",
+          "named": true
+        },
+        {
+          "type": "kw_raw",
+          "named": true
+        },
+        {
+          "type": "kw_real",
+          "named": true
+        },
+        {
           "type": "kw_return",
+          "named": true
+        },
+        {
+          "type": "kw_rowid",
+          "named": true
+        },
+        {
+          "type": "kw_second",
+          "named": true
+        },
+        {
+          "type": "kw_smallint",
+          "named": true
+        },
+        {
+          "type": "kw_time",
+          "named": true
+        },
+        {
+          "type": "kw_timestamp",
+          "named": true
+        },
+        {
+          "type": "kw_to",
+          "named": true
+        },
+        {
+          "type": "kw_urowid",
+          "named": true
+        },
+        {
+          "type": "kw_varchar",
+          "named": true
+        },
+        {
+          "type": "kw_varchar2",
+          "named": true
+        },
+        {
+          "type": "kw_varying",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "kw_year",
+          "named": true
+        },
+        {
+          "type": "kw_zone",
+          "named": true
+        },
+        {
+          "type": "number",
           "named": true
         },
         {
@@ -3000,14 +3492,10 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "byte_char",
-          "named": true
-        },
-        {
-          "type": "exception_declaration",
           "named": true
         },
         {
@@ -3039,10 +3527,6 @@
           "named": true
         },
         {
-          "type": "kw_binary_integer",
-          "named": true
-        },
-        {
           "type": "kw_blob",
           "named": true
         },
@@ -3063,10 +3547,6 @@
           "named": true
         },
         {
-          "type": "kw_datatype_rowtype",
-          "named": true
-        },
-        {
           "type": "kw_datatype_type",
           "named": true
         },
@@ -3076,10 +3556,6 @@
         },
         {
           "type": "kw_day",
-          "named": true
-        },
-        {
-          "type": "kw_dec",
           "named": true
         },
         {
@@ -3107,26 +3583,6 @@
           "named": true
         },
         {
-          "type": "kw_json_array_t",
-          "named": true
-        },
-        {
-          "type": "kw_json_element_t",
-          "named": true
-        },
-        {
-          "type": "kw_json_key_list",
-          "named": true
-        },
-        {
-          "type": "kw_json_object_t",
-          "named": true
-        },
-        {
-          "type": "kw_json_scalar_t",
-          "named": true
-        },
-        {
           "type": "kw_local",
           "named": true
         },
@@ -3139,11 +3595,7 @@
           "named": true
         },
         {
-          "type": "kw_natural",
-          "named": true
-        },
-        {
-          "type": "kw_naturaln",
+          "type": "kw_national",
           "named": true
         },
         {
@@ -3167,18 +3619,6 @@
           "named": true
         },
         {
-          "type": "kw_pls_integer",
-          "named": true
-        },
-        {
-          "type": "kw_positive",
-          "named": true
-        },
-        {
-          "type": "kw_positiven",
-          "named": true
-        },
-        {
           "type": "kw_precision",
           "named": true
         },
@@ -3188,6 +3628,10 @@
         },
         {
           "type": "kw_real",
+          "named": true
+        },
+        {
+          "type": "kw_refcursor",
           "named": true
         },
         {
@@ -3208,22 +3652,6 @@
         },
         {
           "type": "kw_second",
-          "named": true
-        },
-        {
-          "type": "kw_signtype",
-          "named": true
-        },
-        {
-          "type": "kw_simple_double",
-          "named": true
-        },
-        {
-          "type": "kw_simple_float",
-          "named": true
-        },
-        {
-          "type": "kw_simple_integer",
           "named": true
         },
         {
@@ -3391,52 +3819,6 @@
     }
   },
   {
-    "type": "dml_event_clause",
-    "named": true,
-    "fields": {
-      "column": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "kw_delete",
-          "named": true
-        },
-        {
-          "type": "kw_insert",
-          "named": true
-        },
-        {
-          "type": "kw_of",
-          "named": true
-        },
-        {
-          "type": "kw_on",
-          "named": true
-        },
-        {
-          "type": "kw_update",
-          "named": true
-        },
-        {
-          "type": "referenced_element",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "drop_function",
     "named": true,
     "fields": {},
@@ -3533,6 +3915,52 @@
     }
   },
   {
+    "type": "drop_sequence",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "kw_drop",
+          "named": true
+        },
+        {
+          "type": "kw_sequence",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "drop_table",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "kw_drop",
+          "named": true
+        },
+        {
+          "type": "kw_table",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "drop_trigger",
     "named": true,
     "fields": {},
@@ -3604,6 +4032,29 @@
         },
         {
           "type": "kw_type",
+          "named": true
+        },
+        {
+          "type": "referenced_element",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "drop_view",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "kw_drop",
+          "named": true
+        },
+        {
+          "type": "kw_view",
           "named": true
         },
         {
@@ -3948,7 +4399,7 @@
       "required": true,
       "types": [
         {
-          "type": "kw_or",
+          "type": "kw_dup_val_on_index",
           "named": true
         },
         {
@@ -4082,71 +4533,10 @@
   {
     "type": "expression",
     "named": true,
-    "fields": {
-      "left": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "expression",
-            "named": true
-          }
-        ]
-      },
-      "operand": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "expression",
-            "named": true
-          }
-        ]
-      },
-      "operator": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "*",
-            "named": false
-          },
-          {
-            "type": "**",
-            "named": false
-          },
-          {
-            "type": "+",
-            "named": false
-          },
-          {
-            "type": "-",
-            "named": false
-          },
-          {
-            "type": "/",
-            "named": false
-          },
-          {
-            "type": "||",
-            "named": false
-          }
-        ]
-      },
-      "right": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "expression",
-            "named": true
-          }
-        ]
-      }
-    },
+    "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "aggregate_function_call",
@@ -4234,6 +4624,10 @@
         },
         {
           "type": "kw_rowcount",
+          "named": true
+        },
+        {
+          "type": "kw_sql",
           "named": true
         },
         {
@@ -4727,6 +5121,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -4895,6 +5293,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -4920,45 +5322,6 @@
         },
         {
           "type": "type_definition_sub",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "generated_clause",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "identity_option",
-          "named": true
-        },
-        {
-          "type": "kw_always",
-          "named": true
-        },
-        {
-          "type": "kw_as",
-          "named": true
-        },
-        {
-          "type": "kw_by",
-          "named": true
-        },
-        {
-          "type": "kw_default",
-          "named": true
-        },
-        {
-          "type": "kw_generated",
-          "named": true
-        },
-        {
-          "type": "kw_identity",
           "named": true
         }
       ]
@@ -5063,7 +5426,17 @@
   {
     "type": "host_variable",
     "named": true,
-    "fields": {}
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "identifier",
@@ -5080,81 +5453,6 @@
       "types": [
         {
           "type": "identifier",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "identity_option",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "kw_by",
-          "named": true
-        },
-        {
-          "type": "kw_cache",
-          "named": true
-        },
-        {
-          "type": "kw_cycle",
-          "named": true
-        },
-        {
-          "type": "kw_increment",
-          "named": true
-        },
-        {
-          "type": "kw_maxvalue",
-          "named": true
-        },
-        {
-          "type": "kw_minvalue",
-          "named": true
-        },
-        {
-          "type": "kw_nocache",
-          "named": true
-        },
-        {
-          "type": "kw_nocycle",
-          "named": true
-        },
-        {
-          "type": "kw_nomaxvalue",
-          "named": true
-        },
-        {
-          "type": "kw_nominvalue",
-          "named": true
-        },
-        {
-          "type": "kw_noorder",
-          "named": true
-        },
-        {
-          "type": "kw_order",
-          "named": true
-        },
-        {
-          "type": "kw_start",
-          "named": true
-        },
-        {
-          "type": "kw_with",
-          "named": true
-        },
-        {
-          "type": "literal_string",
-          "named": true
-        },
-        {
-          "type": "number",
           "named": true
         }
       ]
@@ -5655,6 +5953,10 @@
           "named": true
         },
         {
+          "type": "kw_table",
+          "named": true
+        },
+        {
           "type": "kw_union",
           "named": true
         },
@@ -5889,9 +6191,13 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
         {
           "type": "kw_name",
           "named": true
@@ -6025,6 +6331,10 @@
       "types": [
         {
           "type": "expression",
+          "named": true
+        },
+        {
+          "type": "identifier",
           "named": true
         },
         {
@@ -6380,6 +6690,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -6405,6 +6719,49 @@
         },
         {
           "type": "type_definition_sub",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "pragma_declaration",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "float",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "kw_autonomous_transaction",
+          "named": true
+        },
+        {
+          "type": "kw_exception_init",
+          "named": true
+        },
+        {
+          "type": "kw_inline",
+          "named": true
+        },
+        {
+          "type": "kw_pragma",
+          "named": true
+        },
+        {
+          "type": "literal_string",
+          "named": true
+        },
+        {
+          "type": "number",
           "named": true
         }
       ]
@@ -6475,6 +6832,10 @@
         },
         {
           "type": "parameter_declaration",
+          "named": true
+        },
+        {
+          "type": "pragma_declaration",
           "named": true
         },
         {
@@ -6626,6 +6987,10 @@
           "named": true
         },
         {
+          "type": "pragma_declaration",
+          "named": true
+        },
+        {
           "type": "procedure_declaration",
           "named": true
         },
@@ -6647,6 +7012,41 @@
         },
         {
           "type": "type_definition_sub",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "raise_application_error_statement",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        },
+        {
+          "type": "float",
+          "named": true
+        },
+        {
+          "type": "kw_false",
+          "named": true
+        },
+        {
+          "type": "kw_raise_application_error",
+          "named": true
+        },
+        {
+          "type": "kw_true",
+          "named": true
+        },
+        {
+          "type": "number",
           "named": true
         }
       ]
@@ -7422,6 +7822,14 @@
           "named": true
         },
         {
+          "type": "alter_sequence",
+          "named": true
+        },
+        {
+          "type": "alter_table",
+          "named": true
+        },
+        {
           "type": "alter_trigger",
           "named": true
         },
@@ -7443,6 +7851,10 @@
         },
         {
           "type": "create_procedure",
+          "named": true
+        },
+        {
+          "type": "create_sequence",
           "named": true
         },
         {
@@ -7482,6 +7894,14 @@
           "named": true
         },
         {
+          "type": "drop_sequence",
+          "named": true
+        },
+        {
+          "type": "drop_table",
+          "named": true
+        },
+        {
           "type": "drop_trigger",
           "named": true
         },
@@ -7491,6 +7911,10 @@
         },
         {
           "type": "drop_type_body",
+          "named": true
+        },
+        {
+          "type": "drop_view",
           "named": true
         },
         {
@@ -7764,6 +8188,10 @@
         },
         {
           "type": "kw_subpartition",
+          "named": true
+        },
+        {
+          "type": "kw_table",
           "named": true
         },
         {
@@ -8470,6 +8898,10 @@
           "named": true
         },
         {
+          "type": "kw_table",
+          "named": true
+        },
+        {
           "type": "kw_union",
           "named": true
         },
@@ -8609,6 +9041,10 @@
           "named": true
         },
         {
+          "type": "raise_application_error_statement",
+          "named": true
+        },
+        {
           "type": "raise_statement",
           "named": true
         },
@@ -8734,11 +9170,7 @@
           "named": true
         },
         {
-          "type": "create_table_datatype",
-          "named": true
-        },
-        {
-          "type": "generated_clause",
+          "type": "datatype",
           "named": true
         }
       ]
@@ -9219,6 +9651,10 @@
           "named": true
         },
         {
+          "type": "kw_table",
+          "named": true
+        },
+        {
           "type": "kw_to",
           "named": true
         },
@@ -9421,7 +9857,7 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "byte_char",
@@ -9432,15 +9868,75 @@
           "named": true
         },
         {
+          "type": "kw_bfile",
+          "named": true
+        },
+        {
+          "type": "kw_binary_double",
+          "named": true
+        },
+        {
+          "type": "kw_binary_float",
+          "named": true
+        },
+        {
           "type": "kw_binary_integer",
           "named": true
         },
         {
-          "type": "kw_datatype_rowtype",
+          "type": "kw_blob",
           "named": true
         },
         {
-          "type": "kw_datatype_type",
+          "type": "kw_boolean",
+          "named": true
+        },
+        {
+          "type": "kw_char",
+          "named": true
+        },
+        {
+          "type": "kw_character",
+          "named": true
+        },
+        {
+          "type": "kw_clob",
+          "named": true
+        },
+        {
+          "type": "kw_date",
+          "named": true
+        },
+        {
+          "type": "kw_day",
+          "named": true
+        },
+        {
+          "type": "kw_decimal",
+          "named": true
+        },
+        {
+          "type": "kw_double",
+          "named": true
+        },
+        {
+          "type": "kw_float",
+          "named": true
+        },
+        {
+          "type": "kw_int",
+          "named": true
+        },
+        {
+          "type": "kw_integer",
+          "named": true
+        },
+        {
+          "type": "kw_interval",
+          "named": true
+        },
+        {
+          "type": "kw_local",
           "named": true
         },
         {
@@ -9448,11 +9944,79 @@
           "named": true
         },
         {
+          "type": "kw_month",
+          "named": true
+        },
+        {
+          "type": "kw_national",
+          "named": true
+        },
+        {
+          "type": "kw_nchar",
+          "named": true
+        },
+        {
+          "type": "kw_nclob",
+          "named": true
+        },
+        {
+          "type": "kw_number",
+          "named": true
+        },
+        {
+          "type": "kw_numeric",
+          "named": true
+        },
+        {
+          "type": "kw_nvarchar2",
+          "named": true
+        },
+        {
           "type": "kw_pls_integer",
           "named": true
         },
         {
+          "type": "kw_precision",
+          "named": true
+        },
+        {
+          "type": "kw_raw",
+          "named": true
+        },
+        {
+          "type": "kw_real",
+          "named": true
+        },
+        {
+          "type": "kw_rowid",
+          "named": true
+        },
+        {
+          "type": "kw_second",
+          "named": true
+        },
+        {
+          "type": "kw_smallint",
+          "named": true
+        },
+        {
           "type": "kw_string",
+          "named": true
+        },
+        {
+          "type": "kw_time",
+          "named": true
+        },
+        {
+          "type": "kw_timestamp",
+          "named": true
+        },
+        {
+          "type": "kw_to",
+          "named": true
+        },
+        {
+          "type": "kw_urowid",
           "named": true
         },
         {
@@ -9461,6 +10025,22 @@
         },
         {
           "type": "kw_varchar2",
+          "named": true
+        },
+        {
+          "type": "kw_varying",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "kw_year",
+          "named": true
+        },
+        {
+          "type": "kw_zone",
           "named": true
         },
         {
@@ -9598,15 +10178,183 @@
       "required": true,
       "types": [
         {
-          "type": "kw_datatype_rowtype",
+          "type": "byte_char",
           "named": true
         },
         {
-          "type": "kw_datatype_type",
+          "type": "float",
+          "named": true
+        },
+        {
+          "type": "kw_bfile",
+          "named": true
+        },
+        {
+          "type": "kw_binary_double",
+          "named": true
+        },
+        {
+          "type": "kw_binary_float",
+          "named": true
+        },
+        {
+          "type": "kw_blob",
+          "named": true
+        },
+        {
+          "type": "kw_boolean",
+          "named": true
+        },
+        {
+          "type": "kw_char",
+          "named": true
+        },
+        {
+          "type": "kw_character",
+          "named": true
+        },
+        {
+          "type": "kw_clob",
+          "named": true
+        },
+        {
+          "type": "kw_date",
+          "named": true
+        },
+        {
+          "type": "kw_day",
+          "named": true
+        },
+        {
+          "type": "kw_decimal",
+          "named": true
+        },
+        {
+          "type": "kw_double",
+          "named": true
+        },
+        {
+          "type": "kw_float",
+          "named": true
+        },
+        {
+          "type": "kw_int",
+          "named": true
+        },
+        {
+          "type": "kw_integer",
+          "named": true
+        },
+        {
+          "type": "kw_interval",
+          "named": true
+        },
+        {
+          "type": "kw_local",
+          "named": true
+        },
+        {
+          "type": "kw_long",
+          "named": true
+        },
+        {
+          "type": "kw_month",
+          "named": true
+        },
+        {
+          "type": "kw_national",
+          "named": true
+        },
+        {
+          "type": "kw_nchar",
+          "named": true
+        },
+        {
+          "type": "kw_nclob",
+          "named": true
+        },
+        {
+          "type": "kw_number",
+          "named": true
+        },
+        {
+          "type": "kw_numeric",
+          "named": true
+        },
+        {
+          "type": "kw_nvarchar2",
+          "named": true
+        },
+        {
+          "type": "kw_precision",
+          "named": true
+        },
+        {
+          "type": "kw_raw",
+          "named": true
+        },
+        {
+          "type": "kw_real",
           "named": true
         },
         {
           "type": "kw_return",
+          "named": true
+        },
+        {
+          "type": "kw_rowid",
+          "named": true
+        },
+        {
+          "type": "kw_second",
+          "named": true
+        },
+        {
+          "type": "kw_smallint",
+          "named": true
+        },
+        {
+          "type": "kw_time",
+          "named": true
+        },
+        {
+          "type": "kw_timestamp",
+          "named": true
+        },
+        {
+          "type": "kw_to",
+          "named": true
+        },
+        {
+          "type": "kw_urowid",
+          "named": true
+        },
+        {
+          "type": "kw_varchar",
+          "named": true
+        },
+        {
+          "type": "kw_varchar2",
+          "named": true
+        },
+        {
+          "type": "kw_varying",
+          "named": true
+        },
+        {
+          "type": "kw_with",
+          "named": true
+        },
+        {
+          "type": "kw_year",
+          "named": true
+        },
+        {
+          "type": "kw_zone",
+          "named": true
+        },
+        {
+          "type": "number",
           "named": true
         },
         {
@@ -10142,10 +10890,6 @@
     "named": false
   },
   {
-    "type": "\"",
-    "named": false
-  },
-  {
     "type": "%",
     "named": false
   },
@@ -10246,6 +10990,10 @@
     "named": false
   },
   {
+    "type": "_",
+    "named": false
+  },
+  {
     "type": "comment_ml",
     "named": true,
     "extra": true
@@ -10289,10 +11037,6 @@
   },
   {
     "type": "kw_alter",
-    "named": true
-  },
-  {
-    "type": "kw_always",
     "named": true
   },
   {
@@ -10357,6 +11101,10 @@
   },
   {
     "type": "kw_authid",
+    "named": true
+  },
+  {
+    "type": "kw_autonomous_transaction",
     "named": true
   },
   {
@@ -10584,10 +11332,6 @@
     "named": true
   },
   {
-    "type": "kw_datatype_rowtype",
-    "named": true
-  },
-  {
     "type": "kw_datatype_type",
     "named": true
   },
@@ -10609,10 +11353,6 @@
   },
   {
     "type": "kw_debug",
-    "named": true
-  },
-  {
-    "type": "kw_dec",
     "named": true
   },
   {
@@ -10680,6 +11420,10 @@
     "named": true
   },
   {
+    "type": "kw_dup_val_on_index",
+    "named": true
+  },
+  {
     "type": "kw_duration",
     "named": true
   },
@@ -10717,6 +11461,10 @@
   },
   {
     "type": "kw_exception",
+    "named": true
+  },
+  {
+    "type": "kw_exception_init",
     "named": true
   },
   {
@@ -10812,10 +11560,6 @@
     "named": true
   },
   {
-    "type": "kw_generated",
-    "named": true
-  },
-  {
     "type": "kw_goto",
     "named": true
   },
@@ -10837,10 +11581,6 @@
   },
   {
     "type": "kw_hierarchies",
-    "named": true
-  },
-  {
-    "type": "kw_identity",
     "named": true
   },
   {
@@ -10877,6 +11617,10 @@
   },
   {
     "type": "kw_indices",
+    "named": true
+  },
+  {
+    "type": "kw_inline",
     "named": true
   },
   {
@@ -10941,26 +11685,6 @@
   },
   {
     "type": "kw_join",
-    "named": true
-  },
-  {
-    "type": "kw_json_array_t",
-    "named": true
-  },
-  {
-    "type": "kw_json_element_t",
-    "named": true
-  },
-  {
-    "type": "kw_json_key_list",
-    "named": true
-  },
-  {
-    "type": "kw_json_object_t",
-    "named": true
-  },
-  {
-    "type": "kw_json_scalar_t",
     "named": true
   },
   {
@@ -11116,11 +11840,11 @@
     "named": true
   },
   {
-    "type": "kw_natural",
+    "type": "kw_national",
     "named": true
   },
   {
-    "type": "kw_naturaln",
+    "type": "kw_natural",
     "named": true
   },
   {
@@ -11161,14 +11885,6 @@
   },
   {
     "type": "kw_nologging",
-    "named": true
-  },
-  {
-    "type": "kw_nomaxvalue",
-    "named": true
-  },
-  {
-    "type": "kw_nominvalue",
     "named": true
   },
   {
@@ -11328,11 +12044,7 @@
     "named": true
   },
   {
-    "type": "kw_positive",
-    "named": true
-  },
-  {
-    "type": "kw_positiven",
+    "type": "kw_pragma",
     "named": true
   },
   {
@@ -11364,6 +12076,10 @@
     "named": true
   },
   {
+    "type": "kw_raise_application_error",
+    "named": true
+  },
+  {
     "type": "kw_range",
     "named": true
   },
@@ -11385,6 +12101,10 @@
   },
   {
     "type": "kw_record",
+    "named": true
+  },
+  {
+    "type": "kw_refcursor",
     "named": true
   },
   {
@@ -11524,6 +12244,10 @@
     "named": true
   },
   {
+    "type": "kw_sequence",
+    "named": true
+  },
+  {
     "type": "kw_serializable",
     "named": true
   },
@@ -11552,27 +12276,15 @@
     "named": true
   },
   {
-    "type": "kw_signtype",
-    "named": true
-  },
-  {
-    "type": "kw_simple_double",
-    "named": true
-  },
-  {
-    "type": "kw_simple_float",
-    "named": true
-  },
-  {
-    "type": "kw_simple_integer",
-    "named": true
-  },
-  {
     "type": "kw_smallint",
     "named": true
   },
   {
     "type": "kw_specification",
+    "named": true
+  },
+  {
+    "type": "kw_sql",
     "named": true
   },
   {
