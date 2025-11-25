@@ -79,33 +79,7 @@ module.exports = grammar({
         [$.kw_as, $.identifier],
         [$.create_trigger, $._trigger_when_condition, $._referenced_element_name],
         [$._simple_dml_trigger, $._system_trigger],
-        // [$.identifier, $.kw_add],
-        // [$.identifier, $.kw_update],
-        // [$.identifier, $.kw_get],
-        // [$.identifier, $.kw_is],
-        // [$.identifier, $.kw_add],
-        // [$.identifier, $.kw_update],
-        // [$.identifier, $.kw_get],
-        // [$.identifier, $.kw_is],
-        // [$.identifier, $.kw_log],
-        // [$.identifier, $.kw_c],
-        // [$.identifier, $.kw_end],
-        // [$.identifier, $.kw_procedure],
-        // [$.identifier, $.kw_function],
-        // [$.identifier, $.kw_add],
-        // [$.identifier, $.kw_alter],
-        // [$.identifier, $.kw_body],
-        // [$.identifier, $.kw_create],
-        // [$.identifier, $.kw_drop],
-        // [$.identifier, $.kw_function],
-        // [$.identifier, $.kw_or],
-        // [$.identifier, $.kw_package],
-        // [$.identifier, $.kw_procedure],
-        // [$.identifier, $.kw_replace],
-        // [$.identifier, $.kw_sequence],
-        // [$.identifier, $.kw_table],
-        // [$.identifier, $.kw_view],
-        // [$.identifier, $.kw_with],
+        [$._alter_method_spec, $._alter_attribute_definition, $._alter_collection_clause],
 
     ],
     extras: $ => [
@@ -252,6 +226,9 @@ module.exports = grammar({
             $.create_obj,
             optional($._editionable_noneditionable),
             $.kw_type,
+            $.plsql_type_source
+        ),
+        plsql_type_source: $ => seq(
             optional($._schema),
             field("type_name", $.identifier),
             optional($.kw_force),
@@ -261,11 +238,79 @@ module.exports = grammar({
             repeat(choice($.invoker_rights_clause, $.accessible_by_clause)),
             choice(
                 $._object_base_type_def,
-                $._object_subtype_def,
+                $._object_subtype_def
             ),
-            $.end_obj_named,
-            optional(DIVISION),
+            SEMICOLON, 
         ),
+
+        _object_base_type_def: $ => seq(
+            $._is_as,
+            choice(
+                $._object_type_def,
+                $.type_definition_varray,
+                $.type_definition_nested_table,
+            ),
+        ),
+
+        _object_subtype_def: $ => seq(
+            $.kw_under,
+            $.referenced_element,
+            optional($._type_attribute_list)
+        ),
+
+        _type_attribute_list: $ => seq(
+            BRACKET_LEFT,
+            $._type_attribute_list_content,
+            BRACKET_RIGHT,
+        ),
+
+        _type_attribute_list_content: $ => repeat1(
+            seq(
+                optional(COMMA),
+                choice(
+                    $.field_definition,
+                    $.element_spec_subprogram_spec,
+                    $.element_spec_map_order_function_spec,
+                    $.element_spec_constructor_spec
+                )
+            )
+        ),
+
+        element_spec_list: $ => seq(
+            optional($.inheritance_clause),
+            repeat1(
+                choice(
+                    $.element_spec_subprogram_spec,
+                    $.element_spec_map_order_function_spec,
+                    $.element_spec_constructor_spec,
+                ),
+            ),
+        ),
+
+        _object_type_def: $ => seq(
+            $.kw_object,
+            choice(
+                seq(BRACKET_LEFT, BRACKET_RIGHT),
+                $._type_attribute_list
+            ),
+            optional($.inheritance_clause),
+        ),
+
+        constructor_definition_in_body: $ => prec(2, seq(
+            optional($.kw_final),
+            optional($.kw_instantiable),
+            $.kw_constructor,
+            $.kw_function,
+            field("name", $.identifier),
+            optional($.parameter_declaration),
+            $.kw_return,
+            $.kw_self,
+            $.kw_as,
+            $.kw_result,
+            $._is_as,
+            seq(optional(repeat($._declare_section_element)), $.body)
+        )),
+
         create_type_body: $ => seq(
             $.create_obj,
             optional($._editionable_noneditionable),
@@ -275,11 +320,15 @@ module.exports = grammar({
             field("type_name", $.identifier),
             optional($.sharing_clause),
             $._is_as,
-            choice($._subprog_decl_in_type, $.element_spec_map_order_function_spec),
-            repeat(seq(COMMA, choice($._subprog_decl_in_type, $.element_spec_map_order_function_spec))),
+            repeat1(choice(
+                $.constructor_definition_in_body,
+                $.procedure_definition,
+                $.function_definition
+            )),
             $.end_obj_named,
             optional(DIVISION),
         ),
+
         create_view: $ => prec.right(1, seq(
             $.kw_create,
             optional($.kw_or),
@@ -305,6 +354,7 @@ module.exports = grammar({
             SEMICOLON,
             optional(DIVISION),
         )),
+
         create_procedure: $ => seq(
             $.create_obj,
             optional($._editionable_noneditionable),
@@ -317,12 +367,9 @@ module.exports = grammar({
             $._is_as,
             choice(
                 $.call_spec_ext,
-                // Тело процедуры содержит BEGIN...END; поэтому ничего больше не нужно
                 seq(optional(repeat($._declare_section_element)), $.body)
             ),
-            // Оператор CREATE PROCEDURE должен заканчиваться точкой с запятой
             SEMICOLON,
-            // Слэш - это команда SQL*Plus, оставим для совместимости
             optional(DIVISION)
         ),
 
@@ -339,10 +386,8 @@ module.exports = grammar({
             $._is_as,
             choice(
                 $.call_spec_ext,
-                // Тело функции содержит BEGIN...END; поэтому ничего больше не нужно
                 seq(optional(repeat($._declare_section_element)), $.body)
             ),
-            // Оператор CREATE FUNCTION должен заканчиваться точкой с запятой
             SEMICOLON,
             optional(DIVISION)
         ),
@@ -368,23 +413,21 @@ module.exports = grammar({
             field("package_name", $.identifier),
             optional($.sharing_clause),
             $._is_as,
-            // Список объявлений и определений
             repeat(choice(
                 $._item_list_1,
-                $.procedure_definition, // Теперь это правило корректное
-                $.function_definition,  // И это тоже
+                $.procedure_definition,
+                $.function_definition,
                 $.cursor_definition
             )),
-            // Опциональный блок инициализации пакета
             optional(seq(
                 $.kw_begin,
                 repeat($.statement),
                 optional($.exception_block)
             )),
-            // Финальный END, который относится ко всему пакету
             $.end_obj_named,
             optional(DIVISION),
         ),
+
         create_sequence: $ => seq(
             $.kw_create,
             $.kw_sequence,
@@ -408,7 +451,6 @@ module.exports = grammar({
             $.invoker_rights_clause,
             $.accessible_by_clause,
         ),
-        // ALTER
         _alter_statement: $ => seq(
             choice(
                 $.alter_trigger,
@@ -417,8 +459,8 @@ module.exports = grammar({
                 $.alter_procedure,
                 $.alter_library,
                 $.alter_type,
-                $.alter_table, // <-- Добавьте эту строку
-                $.alter_sequence, // <-- И эту
+                $.alter_table,
+                $.alter_sequence,
             ),
         ),
         alter_package: $ => seq(
@@ -484,15 +526,93 @@ module.exports = grammar({
             optional($._schema),
             field("type_name", $.identifier),
             choice(
-                $._compile_clause,
                 $._editionable_noneditionable,
-                $.kw_reset,
-                $._final_instantiable,
-                $.alter_type_replace,
-                $._alter_type_alter_x,
+                $._alter_type_clause
             ),
             optional($.dependent_handling_clause),
             SEMICOLON,
+        ),
+        _alter_type_clause: $ => choice(
+            $._compile_clause,
+            $._type_replace_clause,
+            $.kw_reset,
+            $._final_instantiable,
+            // Группа правил для ALTER METHOD, ATTRIBUTE, COLLECTION
+            repeat1(
+                choice(
+                    $._alter_method_spec,
+                    $._alter_attribute_definition,
+                    $._alter_collection_clause
+                )
+            ),
+        ),
+        _type_replace_clause: $ => seq(
+            $.kw_replace,
+            repeat(choice($.invoker_rights_clause, $.accessible_by_clause)),
+            $.kw_as,
+            $.kw_object,
+            // Используем уже существующее и корректное правило для списка атрибутов и методов
+            optional($._type_attribute_list),
+        ),
+        _alter_method_spec: $ => seq(
+            $.alter_method_spec_element,
+            repeat(seq(COMMA, $.alter_method_spec_element)),
+        ),
+
+        alter_method_spec_element: $ => seq(
+            choice($.kw_add, $.kw_drop),
+            choice(
+                $.element_spec_map_order_function_spec,
+                $.element_spec_subprogram_spec,
+            ),
+        ),
+        _alter_attribute_definition: $ => choice(
+            $.alter_attribute_definition_add_modify,
+            $.alter_attribute_definition_drop,
+        ),
+
+        alter_attribute_definition_add_modify: $ => seq(
+            choice($.kw_add, $.kw_modify),
+            $.kw_attribute,
+            $.alter_attribute_definition_attribute_datatype,
+        ),
+
+        alter_attribute_definition_drop: $ => seq(
+            $.kw_drop,
+            $.kw_attribute,
+            $.alter_attribute_definition_attribute,
+        ),
+
+        alter_attribute_definition_attribute: $ => choice(
+            $.identifier,
+            seq(
+                BRACKET_LEFT,
+                $.identifier,
+                repeat(seq(COMMA, $.identifier)),
+                BRACKET_RIGHT,
+            ),
+        ),
+
+        alter_attribute_definition_attribute_datatype: $ => choice(
+            $.alter_attribute_definition_attribute_datatype_element,
+            seq(
+                BRACKET_LEFT,
+                $.alter_attribute_definition_attribute_datatype_element,
+                repeat(seq(COMMA, $.alter_attribute_definition_attribute_datatype_element)),
+                BRACKET_RIGHT,
+            ),
+        ),
+
+        alter_attribute_definition_attribute_datatype_element: $ => seq(
+            $.identifier,
+            $.datatype,
+        ),
+        _alter_collection_clause: $ => seq(
+            $.kw_modify,
+            choice(
+                seq($.kw_limit, $._literal_number),
+                seq($.kw_element, $.kw_type, $.datatype),
+            ),
         ),
         alter_table: $ => seq(
             $.kw_alter,
@@ -524,13 +644,13 @@ module.exports = grammar({
             ),
             SEMICOLON,
         ),
-        _alter_type_alter_x: $ => seq(
-            choice(
-                $.alter_method_spec,
-                $.alter_attribute_definition,
-                $.alter_collection_clause,
-            ),
-        ),
+        // _alter_type_alter_x: $ => seq(
+        //     choice(
+        //         $.alter_method_spec,
+        //         $.alter_attribute_definition,
+        //         $.alter_collection_clause,
+        //     ),
+        // ),
         alter_method_spec: $ => seq(
             $.alter_method_spec_element,
             repeat(seq(COMMA, $.alter_method_spec_element)),
@@ -591,25 +711,7 @@ module.exports = grammar({
             $.identifier,
             $.datatype,
         ),
-        alter_type_replace: $ => seq(
-            $.kw_replace,
-            repeat(choice($.invoker_rights_clause, $.accessible_by_clause)),
-            $.kw_as,
-            $.kw_object,
-            $.type_attribute_datatype_element_spec,
-        ),
-        type_attribute_datatype_element_spec: $ => seq(
-            BRACKET_LEFT,
-            $.identifier,
-            $.datatype,
-            repeat(
-                seq(COMMA, $.identifier, $.datatype),
-            ),
-            repeat(
-                seq(COMMA, $.element_spec),
-            ),
-            BRACKET_RIGHT,
-        ),
+
         _subprog_decl_in_type: $ => choice(
             $.func_decl_in_type,
             $.proc_decl_in_type,
@@ -646,51 +748,19 @@ module.exports = grammar({
                 seq(repeat($._declare_section_element), $.body),
             ),
         ),
-        element_spec: $ => seq(
-            optional($.inheritance_clause),
-            repeat1(
-                choice(
-                    $.element_spec_subprogram_spec,
-                    $.element_spec_map_order_function_spec,
-                    $.element_spec_constructor_spec,
-                ),
-            ),
-        ),
+
         element_spec_constructor_spec: $ => seq(
             optional($.kw_final),
             optional($.kw_instantiable),
             $.kw_constructor,
             $.kw_function,
             field("name", $.identifier),
-            optional(
-                seq(
-                    BRACKET_LEFT,
-                    optional(
-                        seq(
-                            $.kw_self,
-                            $.kw_in,
-                            $.kw_out,
-                            $.identifier,
-                            COMMA,
-                        ),
-                    ),
-                    $.parameter_declaration_element,
-                    repeat(
-                        seq(
-                            COMMA,
-                            $.parameter_declaration_element,
-                        ),
-                    ),
-                    BRACKET_RIGHT,
-                ),
-            ),
+            optional($.parameter_declaration),
             $.kw_return,
             $.kw_self,
             $.kw_as,
             $.kw_result,
-            optional(
-                $.element_spec_is_as_call_spec,
-            )
+            optional($.element_spec_is_as_call_spec),
         ),
         element_spec_map_order_function_spec: $ => seq(
             choice(
@@ -719,7 +789,7 @@ module.exports = grammar({
         element_spec_function_spec: $ => seq(
             $.kw_function,
             field("fnc_name", $.identifier),
-            $.parameter_declaration,
+            optional($.parameter_declaration),
             $.return_declaration,
             optional($.element_spec_is_as_call_spec),
         ),
@@ -1069,16 +1139,7 @@ module.exports = grammar({
             BRACKET_RIGHT,
         ),
         _condition: $ => $.expression,
-        // dml_event_clause: $ => choice(
-        //     // UPDATE OF column_list ON table
-        //     seq($.kw_update, $.kw_of, field("column", $.identifier), repeat(seq(COMMA, field("column", $.identifier))),
-        //         // INSERT ON table
-        //         seq($.kw_insert),
-        //         // DELETE ON table
-        //         seq($.kw_delete),
-        //         // UPDATE ON table
-        //         seq($.kw_update)
-        //     )),
+
         default_collation_clause: $ => seq(
             $.kw_default,
             $.kw_collation,
@@ -1093,27 +1154,7 @@ module.exports = grammar({
                 $.kw_definer,
             )
         ),
-        _object_base_type_def: $ => seq(
-            $._is_as,
-            choice(
-                $._object_type_def,
-                $.type_definition_varray,
-                $.type_definition_nested_table,
-            ),
-        ),
-        _object_subtype_def: $ => seq(
-            $.kw_under,
-            $.referenced_element,
-            optional($.type_attribute_datatype_element_spec),
-            optional($.inheritance_clause),
 
-        ),
-        _object_type_def: $ => seq(
-            $.kw_object,
-            optional($.type_attribute_datatype_element_spec),
-            optional($.inheritance_clause),
-
-        ),
         result_cache_clause: $ => seq(
             $.kw_result_cache,
             optional(
@@ -1251,7 +1292,11 @@ module.exports = grammar({
             // Вариант 2: Только CREATE
             $.kw_create,
         ),
-        procedure_definition: $ => seq(
+        _subprogram_specifiers: $ => repeat1(
+            choice($.kw_member, $.kw_static, $.kw_map, $.kw_constructor)
+        ),
+        procedure_definition: $ => prec(1, seq(
+            optional($._subprogram_specifiers),
             $.kw_procedure,
             field("prc_name", $.identifier),
             optional($.parameter_declaration),
@@ -1259,10 +1304,9 @@ module.exports = grammar({
             $._is_as,
             choice(
                 $.call_spec_ext,
-                // Добавляем optional(repeat($._declare_section_element))
                 seq(optional(repeat($._declare_section_element)), $.body)
             )
-        ),
+        )),
         procedure_declaration: $ => seq(
             $.kw_procedure,
             field("prc_name", $.identifier),
@@ -1275,7 +1319,8 @@ module.exports = grammar({
             $.invoker_rights_clause,
             $.accessible_by_clause,
         ),
-        function_definition: $ => seq(
+        function_definition: $ => prec(1, seq(
+            optional($._subprogram_specifiers),
             $.kw_function,
             field("fnc_name", $.identifier),
             optional($.parameter_declaration),
@@ -1284,10 +1329,9 @@ module.exports = grammar({
             $._is_as,
             choice(
                 $.call_spec_ext,
-                // И здесь тоже
                 seq(optional(repeat($._declare_section_element)), $.body)
             )
-        ),
+        )),
         function_declaration: $ => seq(
             $.kw_function,
             field("fnc_name", $.identifier),
@@ -1708,20 +1752,6 @@ module.exports = grammar({
             ),
             $.referenced_element,
         ),
-        // cursor_for_loop_statement: $ => seq(
-        //     $.kw_for,
-        //     $.identifier,
-        //     $.kw_in,
-        //     choice(
-        //         seq($.referenced_element, $.parameter),
-        //         seq(BRACKET_LEFT, $.sql_statement_select, BRACKET_RIGHT),
-        //     ),
-        //     $.kw_loop,
-        //     repeat1($.statement),
-        //     $.kw_end,
-        //     $.kw_loop,
-        //     optional($.label),
-        // ),
         cursor_definition: $ => seq(
             $.kw_cursor,
             $.identifier,
@@ -2336,17 +2366,7 @@ module.exports = grammar({
             $._literal_number,
             BRACKET_RIGHT,
         )),
-        // _size: $ => seq(
-        //     BRACKET_LEFT,
-        //     $._literal_number,
-        //     BRACKET_RIGHT,
-        // ),
-        // _size_byte_char: $ => seq(
-        //     BRACKET_LEFT,
-        //     $._literal_number,
-        //     optional($.byte_char),
-        //     BRACKET_RIGHT,
-        // ),
+
         _size_precision_scale: $ => seq(
             BRACKET_LEFT,
             $._precision,
@@ -2416,7 +2436,7 @@ module.exports = grammar({
         identifier: $ => prec.right(token(choice(
             // Это регулярное выражение соответствует любому идентификатору, включая те,
             // что содержат подчеркивания и могут начинаться с ключевого слова.
-            // Например: test_table, create_view, drop_table.
+            // Например: test_table, create_view, drop_table, get_status.
             // token() заставляет лексер сопоставить всю последовательность за раз.
             /[A-z][A-z0-9_$#]*/,
             // Правило для идентификаторов в двойных кавычках.
