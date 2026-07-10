@@ -1,6 +1,7 @@
 {
   "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "plsql",
+  "word": "_unquoted_identifier",
   "rules": {
     "source_file": {
       "type": "REPEAT",
@@ -12113,21 +12114,26 @@
       "type": "PREC_RIGHT",
       "value": 0,
       "content": {
-        "type": "TOKEN",
-        "content": {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "PATTERN",
-              "value": "[A-z][A-z0-9_$#]*"
-            },
-            {
-              "type": "PATTERN",
-              "value": "\"(\"\"|[^\"])*\""
-            }
-          ]
-        }
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_unquoted_identifier"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_quoted_identifier"
+          }
+        ]
       }
+    },
+    "_unquoted_identifier": {
+      "type": "PATTERN",
+      "value": "[A-z][A-z0-9_$#]*"
+    },
+    "_quoted_identifier": {
+      "type": "PATTERN",
+      "value": "\"(\"\"|[^\"])*\""
     },
     "_identifier_with_underscore": {
       "type": "TOKEN",
@@ -21266,6 +21272,5 @@
   "precedences": [],
   "externals": [],
   "inline": [],
-  "supertypes": [],
-  "reserved": {}
+  "supertypes": []
 }

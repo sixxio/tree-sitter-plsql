@@ -82,6 +82,7 @@ module.exports = grammar({
         [$._alter_method_spec, $._alter_attribute_definition, $._alter_collection_clause],
 
     ],
+    word: $ => $._unquoted_identifier,
     extras: $ => [
         $.comment_sl,
         $.comment_ml,
@@ -240,7 +241,7 @@ module.exports = grammar({
                 $._object_base_type_def,
                 $._object_subtype_def
             ),
-            SEMICOLON, 
+            SEMICOLON,
         ),
 
         _object_base_type_def: $ => seq(
@@ -2433,15 +2434,12 @@ module.exports = grammar({
             DOUBLE_POINT,
             $.identifier,
         ),
-        identifier: $ => prec.right(token(choice(
-            // Это регулярное выражение соответствует любому идентификатору, включая те,
-            // что содержат подчеркивания и могут начинаться с ключевого слова.
-            // Например: test_table, create_view, drop_table, get_status.
-            // token() заставляет лексер сопоставить всю последовательность за раз.
-            /[A-z][A-z0-9_$#]*/,
-            // Правило для идентификаторов в двойных кавычках.
-            /"(""|[^"])*"/,
-        ))),
+        identifier: $ => prec.right(choice(
+            $._unquoted_identifier,
+            $._quoted_identifier,
+        )),
+        _unquoted_identifier: _ => /[A-z][A-z0-9_$#]*/,
+        _quoted_identifier: _ => /"(""|[^"])*"/,
 
         _identifier_with_underscore: $ => token(
             seq(

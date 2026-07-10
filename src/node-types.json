@@ -10725,13 +10725,11 @@
   },
   {
     "type": "comment_ml",
-    "named": true,
-    "extra": true
+    "named": true
   },
   {
     "type": "comment_sl",
-    "named": true,
-    "extra": true
+    "named": true
   },
   {
     "type": "float",
